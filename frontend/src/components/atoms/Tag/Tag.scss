@@ -1,0 +1,44 @@
+.custom-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-family);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+
+  &--default {
+    background-color: var(--neutral-1);
+    color: var(--neutral-6);
+    border-color: var(--neutral-3);
+  }
+
+  &--processing {
+    background-color: var(--primary-0);
+    color: var(--primary-2);
+    border-color: var(--primary-1);
+  }
+
+  &--success {
+    background-color: var(--secondary-0);
+    color: var(--secondary-2);
+    border-color: var(--secondary-1);
+  }
+
+  &--warning {
+    background-color: var(--tertiary-0);
+    color: var(--tertiary-2);
+    border-color: var(--tertiary-1);
+  }
+
+  &--error {
+    background-color: var(--danger-0);
+    color: var(--danger-2);
+    border-color: var(--danger-1);
+  }
+}

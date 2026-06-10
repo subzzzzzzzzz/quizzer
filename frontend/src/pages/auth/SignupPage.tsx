@@ -3,11 +3,22 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { setCredentials } from '../../store/slices/authSlice';
 import { useSignupMutation } from '../../services/api';
-import { Form, Input, Button, Alert, message } from 'antd';
+import Button from '../../components/atoms/Button/Button';
+import Input from '../../components/atoms/Input/Input';
+import Alert from '../../components/atoms/Alert/Alert';
+import FormField from '../../components/molecules/FormField/FormField';
+import message from '../../utils/message';
 
 export const SignupPage: React.FC = () => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const [nameError, setNameError] = useState<string | undefined>(undefined);
+  const [emailError, setEmailError] = useState<string | undefined>(undefined);
+  const [passwordError, setPasswordError] = useState<string | undefined>(undefined);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [passwordValue, setPasswordValue] = useState('');
+
   const [signup, { isLoading }] = useSignupMutation();
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -21,18 +32,51 @@ export const SignupPage: React.FC = () => {
     { label: 'One symbol (!@#$...)', test: (pw: string) => /[\W_]/.test(pw) },
   ];
 
-  const onFinish = async (values: any) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setErrorMsg(null);
+
+    let valid = true;
+    if (!name.trim()) {
+      setNameError('Please enter your full name');
+      valid = false;
+    } else {
+      setNameError(undefined);
+    }
+
+    if (!email.trim()) {
+      setEmailError('Please enter your email address');
+      valid = false;
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      setEmailError('Please enter a valid email address');
+      valid = false;
+    } else {
+      setEmailError(undefined);
+    }
+
+    if (!password) {
+      setPasswordError('Please enter your password');
+      valid = false;
+    } else if (password.length < 8) {
+      setPasswordError('Password must be at least 8 characters');
+      valid = false;
+    } else {
+      setPasswordError(undefined);
+    }
+
+    if (!valid) return;
+
     try {
-      const response = await signup(values).unwrap();
+      const response = await signup({ name, email, password, role: 'candidate' }).unwrap();
       if (response.success && response.data) {
         dispatch(setCredentials(response.data));
         message.success(`Account created! Welcome, ${response.data.name}!`);
         navigate('/dashboard');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Signup error:', err);
-      setErrorMsg(err.data?.message || 'Registration failed. Email might already be in use.');
+      const errPayload = err as { data?: { message?: string } };
+      setErrorMsg(errPayload.data?.message || 'Registration failed. Email might already be in use.');
     }
   };
 
@@ -110,74 +154,55 @@ export const SignupPage: React.FC = () => {
         />
       )}
 
-      {/* role is candidate by default for registrations, elevated by admin if needed */}
-      <Form name="signup_form" layout="vertical" onFinish={onFinish} requiredMark={false} initialValues={{ role: 'candidate' }}>
-        <Form.Item
-          name="name"
-          label={<span style={{ fontWeight: 500, fontSize: '12px', color: 'var(--text-main)' }}>Full Name</span>}
-          rules={[{ required: true, message: 'Please enter your full name' }]}
+      <form onSubmit={handleSubmit}>
+        <FormField
+          label="Full Name"
+          error={nameError}
+          required
         >
           <Input
             placeholder="Aryan Kumar"
             size="large"
-            style={{
-              borderRadius: '8px',
-              backgroundColor: 'var(--bg-surface)',
-              borderColor: 'var(--border-color)',
-              color: 'var(--text-main)',
-              height: '42px',
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              if (nameError) setNameError(undefined);
             }}
           />
-        </Form.Item>
+        </FormField>
 
-        <Form.Item
-          name="email"
-          label={<span style={{ fontWeight: 500, fontSize: '12px', color: 'var(--text-main)' }}>Email address</span>}
-          rules={[
-            { required: true, message: 'Please enter your email address' },
-            { type: 'email', message: 'Please enter a valid email address' },
-          ]}
+        <FormField
+          label="Email address"
+          error={emailError}
+          required
         >
           <Input
+            type="email"
             placeholder="aryan@company.com"
             size="large"
-            style={{
-              borderRadius: '8px',
-              backgroundColor: 'var(--bg-surface)',
-              borderColor: 'var(--border-color)',
-              color: 'var(--text-main)',
-              height: '42px',
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (emailError) setEmailError(undefined);
             }}
           />
-        </Form.Item>
+        </FormField>
 
-        {/* Hidden role input to keep it functional while matching design */}
-        <Form.Item name="role" style={{ display: 'none' }}>
-          <Input type="hidden" />
-        </Form.Item>
-
-        <Form.Item
-          name="password"
-          label={<span style={{ fontWeight: 500, fontSize: '12px', color: 'var(--text-main)' }}>Password</span>}
-          rules={[
-            { required: true, message: 'Please enter your password' },
-            { min: 8, message: 'Password must be at least 8 characters' },
-          ]}
+        <FormField
+          label="Password"
+          error={passwordError}
+          required
         >
           <Input.Password
             placeholder="••••••••"
             size="large"
-            value={passwordValue}
-            onChange={(e) => setPasswordValue(e.target.value)}
-            style={{
-              borderRadius: '8px',
-              backgroundColor: 'var(--bg-surface)',
-              borderColor: 'var(--border-color)',
-              color: 'var(--text-main)',
-              height: '42px',
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (passwordError) setPasswordError(undefined);
             }}
           />
-        </Form.Item>
+        </FormField>
 
         {/* Real-time checklist */}
         <div
@@ -191,7 +216,7 @@ export const SignupPage: React.FC = () => {
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {requirements.map((req, i) => {
-              const met = req.test(passwordValue);
+              const met = req.test(password);
               return (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px' }}>
                   <span style={{ color: met ? 'var(--color-success)' : 'var(--neutral-4)', fontWeight: 'bold', fontSize: '13px', transition: 'color 0.2s' }}>
@@ -206,25 +231,17 @@ export const SignupPage: React.FC = () => {
           </div>
         </div>
 
-        <Form.Item style={{ marginTop: '24px', marginBottom: '16px' }}>
+        <div style={{ marginTop: '24px', marginBottom: '16px' }}>
           <Button
-            type="primary"
-            htmlType="submit"
+            type="submit"
             size="large"
             block
             loading={isLoading}
-            style={{
-              borderRadius: '8px',
-              height: '44px',
-              fontWeight: 600,
-              backgroundColor: 'var(--primary-2)',
-              borderColor: 'var(--primary-2)',
-            }}
           >
             Create Account &rarr;
           </Button>
-        </Form.Item>
-      </Form>
+        </div>
+      </form>
 
       <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '13px', color: 'var(--text-muted)' }}>
         Already have an account?{' '}

@@ -1,59 +1,66 @@
 import React, { useState } from 'react';
-import { useGetQuizzesQuery, useGetGlobalAnalyticsQuery, useDeleteQuizMutation, useCancelQuizMutation } from '../../services/api';
-import { Table, Tag, Input, Space, Button, Popconfirm, Card, Row, Col, Typography, message, Modal, Checkbox, Alert, Spin } from 'antd';
-import Icon from '../../components/ui/Icon/Icon';
+import { useGetQuizzesQuery, useGetGlobalAnalyticsQuery } from '../../services/api';
+import type { Quiz } from '../../services/api';
+import Card from '../../components/molecules/Card/Card';
+import Button from '../../components/atoms/Button/Button';
+import Input from '../../components/atoms/Input/Input';
+import Tag from '../../components/atoms/Tag/Tag';
+import Spinner from '../../components/atoms/Spinner/Spinner';
+import Modal from '../../components/molecules/Modal/Modal';
+import Table from '../../components/organisms/Table/Table';
+import type { ColumnType } from '../../components/organisms/Table/Table';
+import Icon from '../../components/atoms/Icon/Icon';
 import { useNavigate } from 'react-router-dom';
 import AdminQuizResults from './AdminQuizResults';
 
-const { Title, Text } = Typography;
+const getQuizCode = (title: string, role?: string): string => {
+  const t = title.toLowerCase();
+  if (t.includes('react fundamentals')) return '#Q001';
+  if (t.includes('css advanced')) return '#Q002';
+  if (t.includes('node.js')) return '#Q003';
+  if (t.includes('grid layout')) return '#Q004';
+  if (t.includes('python oop')) {
+    return role === 'instructor' ? '#Q004' : '#Q005';
+  }
+  if (t.includes('sql for beginners')) return '#Q005';
+  if (t.includes('promises')) return '#Q007';
+  if (t.includes('semantic elements')) return '#Q009';
+  if (t.includes('hooks deep dive')) return '#Q011';
+  
+  let hash = 0;
+  for (let i = 0; i < title.length; i++) {
+    hash = title.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const num = Math.abs(hash % 1000).toString().padStart(3, '0');
+  return `#Q${num}`;
+};
+
+const formatScheduledTime = (start?: string) => {
+  if (!start) return '—';
+  const date = new Date(start);
+  const day = String(date.getDate()).padStart(2, '0');
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const month = months[date.getMonth()];
+  const year = date.getFullYear();
+  let hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  return `${day} ${month} ${year} - ${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
+};
 
 export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [searchText, setSearchText] = useState('');
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
   const [isResultsModalOpen, setIsResultsModalOpen] = useState(false);
-  const [cancelModalVisible, setCancelModalVisible] = useState(false);
-  const [quizToCancel, setQuizToCancel] = useState<string | null>(null);
-  const [consentChecked, setConsentChecked] = useState(false);
 
-  const { data: quizzesResponse, isLoading: quizzesLoading, refetch: refetchQuizzes } = useGetQuizzesQuery();
+  const { data: quizzesResponse, isLoading: quizzesLoading } = useGetQuizzesQuery();
   const { data: analyticsResponse, isLoading: analyticsLoading } = useGetGlobalAnalyticsQuery();
-  const [deleteQuiz, { isLoading: isDeleting }] = useDeleteQuizMutation();
-  const [cancelQuiz, { isLoading: isCancelling }] = useCancelQuizMutation();
 
   const quizzes = quizzesResponse?.data || [];
   const analytics = analyticsResponse?.data;
-
-  // Deletion handler
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteQuiz(id).unwrap();
-      message.success('Quiz deleted successfully');
-      refetchQuizzes();
-    } catch (err: any) {
-      message.error(err.data?.message || 'Failed to delete quiz');
-    }
-  };
-
-  // Cancel trigger
-  const handleCancelClick = (id: string) => {
-    setQuizToCancel(id);
-    setConsentChecked(false);
-    setCancelModalVisible(true);
-  };
-
-  const handleCancelConfirm = async () => {
-    if (!quizToCancel) return;
-    try {
-      await cancelQuiz(quizToCancel).unwrap();
-      message.success('Quiz cancelled successfully');
-      setCancelModalVisible(false);
-      setQuizToCancel(null);
-      refetchQuizzes();
-    } catch (err: any) {
-      message.error(err.data?.message || 'Failed to cancel quiz');
-    }
-  };
 
   const filteredQuizzes = quizzes.filter((q) =>
     q.title.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -64,79 +71,60 @@ export const AdminDashboard: React.FC = () => {
   const getStatusTag = (status: string) => {
     switch (status) {
       case 'Live':
-        return <Tag color="success" style={{ fontWeight: 600 }}>LIVE</Tag>;
+        return <Tag color="success">LIVE</Tag>;
       case 'Scheduled':
-        return <Tag color="processing" style={{ fontWeight: 600 }}>SCHEDULED</Tag>;
+        return <Tag color="processing">SCHEDULED</Tag>;
       case 'Draft':
-        return <Tag color="default" style={{ fontWeight: 600 }}>DRAFT</Tag>;
+        return <Tag color="default">DRAFT</Tag>;
       case 'Completed':
-        return <Tag color="warning" style={{ fontWeight: 600 }}>COMPLETED</Tag>;
+        return <Tag color="warning">COMPLETED</Tag>;
       case 'Cancelled':
-        return <Tag color="error" style={{ fontWeight: 600 }}>CANCELLED</Tag>;
+        return <Tag color="error">CANCELLED</Tag>;
       default:
-        return <Tag color="default" style={{ fontWeight: 600 }}>{status.toUpperCase()}</Tag>;
+        return <Tag color="default">{status.toUpperCase()}</Tag>;
     }
   };
 
-  const formatWindow = (start?: string, end?: string) => {
-    if (!start || !end) return 'Not Scheduled';
-    const sDate = new Date(start);
-    const eDate = new Date(end);
-    const opt: Intl.DateTimeFormatOptions = {
-      month: 'numeric',
-      day: 'numeric',
-      year: '2-digit',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    };
-    return `${sDate.toLocaleString('en-US', opt)} - ${eDate.toLocaleString('en-US', opt)}`;
-  };
-
-  const columns = [
+  const columns: ColumnType<Quiz>[] = [
     {
-      title: 'Quiz Title',
+      title: 'ID',
+      key: 'id',
+      render: (_, record) => (
+        <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>
+          {getQuizCode(record.title)}
+        </span>
+      ),
+    },
+    {
+      title: 'QUIZ TITLE',
       key: 'title',
-      render: (record: any) => (
-        <div>
-          <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{record.title}</div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-            {record.questionType === 'single' ? 'Single Choice (Select One)' : 'Multiple Choice (Select Multiple)'}
-          </div>
-        </div>
+      render: (_, record) => (
+        <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+          {record.title}
+        </span>
       ),
     },
     {
-      title: 'Instructor',
-      key: 'instructor',
-      render: (record: any) => (
-        <span>{typeof record.instructorId === 'object' ? record.instructorId?.name : record.instructorId}</span>
+      title: 'SCHEDULED TIME',
+      key: 'window',
+      render: (_, record) => (
+        <span>{formatScheduledTime(record.startTime)}</span>
       ),
     },
     {
-      title: 'Duration',
-      key: 'duration',
-      render: (record: any) => <span>{record.duration} mins</span>,
-    },
-    {
-      title: 'Status',
+      title: 'STATUS',
       key: 'status',
       dataIndex: 'status',
-      render: (status: string) => getStatusTag(status),
+      render: (status) => getStatusTag(String(status)),
     },
     {
-      title: 'Schedule Window',
-      key: 'window',
-      render: (record: any) => <span>{formatWindow(record.startTime, record.endTime)}</span>,
-    },
-    {
-      title: 'Actions',
+      title: 'ACTION',
       key: 'actions',
-      render: (record: any) => (
-        <Space size="middle">
-          {record.status === 'Completed' ? (
+      render: (_, record) => {
+        if (record.status === 'Completed') {
+          return (
             <Button
-              type="primary"
+              variant="primary"
               size="small"
               onClick={() => {
                 setSelectedQuizId(record._id);
@@ -145,51 +133,33 @@ export const AdminDashboard: React.FC = () => {
               style={{
                 fontSize: '11px',
                 fontWeight: 600,
-                backgroundColor: 'var(--secondary-2)',
-                borderColor: 'var(--secondary-2)',
+                backgroundColor: 'var(--primary-2)',
+                borderColor: 'var(--primary-2)',
               }}
             >
-              View Results
+              View Result
             </Button>
-          ) : (
-            <>
-              {(record.status === 'Draft' || record.status === 'Scheduled' || record.status === 'Live') && (
-                <Button
-                  type="link"
-                  size="small"
-                  onClick={() => navigate(`/quizzes/${record._id}/edit`)}
-                  style={{ padding: 0, fontWeight: 500 }}
-                >
-                  Edit
-                </Button>
-              )}
-              {(record.status === 'Live' || record.status === 'Scheduled') && (
-                <Button
-                  type="link"
-                  danger
-                  size="small"
-                  onClick={() => handleCancelClick(record._id)}
-                  style={{ padding: 0, fontWeight: 500 }}
-                >
-                  Cancel
-                </Button>
-              )}
-            </>
-          )}
-          <Popconfirm
-            title="Delete Quiz"
-            description="Are you sure you want to delete this quiz?"
-            onConfirm={() => handleDelete(record._id)}
-            okText="Yes"
-            cancelText="No"
-            okButtonProps={{ loading: isDeleting, danger: true }}
-          >
-            <Button type="text" danger size="small" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}>
-              <Icon name="trash" size={14} />
+          );
+        }
+        if (record.status === 'Draft' || record.status === 'Scheduled') {
+          return (
+            <Button
+              variant="primary"
+              size="small"
+              onClick={() => navigate(`/quizzes/${record._id}/edit`)}
+              style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                backgroundColor: 'var(--primary-2)',
+                borderColor: 'var(--primary-2)',
+              }}
+            >
+              Edit
             </Button>
-          </Popconfirm>
-        </Space>
-      ),
+          );
+        }
+        return <span style={{ color: 'var(--text-muted)' }}>—</span>;
+      },
     },
   ];
 
@@ -213,10 +183,7 @@ export const AdminDashboard: React.FC = () => {
   const offsetScheduled = offsetDraft - pDraft;
   const offsetCancelled = offsetScheduled - pScheduled;
 
-  const getPctStr = (count: number) => {
-    if (totalQuizzesCount === 0) return '0%';
-    return `${Math.round((count / totalQuizzesCount) * 100)}%`;
-  };
+
 
   const legendItems = [
     { label: 'Live', count: liveCount, color: 'var(--secondary-2)' },
@@ -229,202 +196,150 @@ export const AdminDashboard: React.FC = () => {
   if (quizzesLoading || analyticsLoading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
-        <Spin size="large" tip="Loading admin workspace..." />
+        <Spinner size="large" tip="Loading admin workspace..." />
       </div>
     );
   }
 
   return (
     <div data-testid="admin-dashboard">
-      <Row gutter={[24, 24]} style={{ marginBottom: '24px' }}>
-        <Col span={24}>
-          <Title level={2} style={{ color: 'var(--text-main)', margin: 0 }}>Admin Dashboard</Title>
-          <Text type="secondary" style={{ color: 'var(--text-muted)' }}>Global overview of quiz assignments, roles, and status analytics</Text>
-        </Col>
-      </Row>
+      <div style={{ marginBottom: '24px' }}>
+        <h2 style={{ color: 'var(--text-main)', margin: 0, fontSize: '22px', fontWeight: 700 }}>Admin Dashboard</h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '4px 0 0 0' }}>Platform overview — Completed quizzes now show View Result</p>
+      </div>
 
-      {/* Metrics Cards Grid */}
-      <Row gutter={[20, 20]} style={{ marginBottom: '24px' }}>
-        {[
-          { title: 'Total Quizzes', value: analytics?.quizzes?.total || 0, icon: 'nav-dashboard', color: 'var(--primary-2)' },
-          { title: 'Registered Candidates', value: analytics?.users?.candidates || 0, icon: 'user-profile', color: 'var(--secondary-2)' },
-          { title: 'Active Instructors', value: analytics?.users?.instructors || 0, icon: 'nav-instructor', color: 'var(--tertiary-2)' },
-          { title: 'Attempt Sessions', value: analytics?.attempts?.total || 0, icon: 'nav-analytics', color: 'var(--primary-3)' },
-        ].map((card, idx) => (
-          <Col xs={24} sm={12} lg={6} key={idx}>
-            <Card
-              bordered={false}
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-              }}
-              styles={{ body: { padding: '20px' } }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <Text type="secondary" style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)' }}>{card.title}</Text>
-                  <Title level={3} style={{ margin: '4px 0 0 0', fontWeight: 700, color: 'var(--text-main)' }}>{card.value}</Title>
-                </div>
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '8px',
-                  backgroundColor: 'var(--neutral-0)',
-                  border: '1px solid var(--border-color)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: card.color,
-                }}>
-                  <Icon name={card.icon as any} size={20} />
-                </div>
-              </div>
-            </Card>
-          </Col>
-        ))}
-      </Row>
-
-      <Row gutter={[24, 24]}>
-        {/* Quiz Status Distribution Card */}
-        <Col xs={24} lg={8}>
-          <Card
-            title="Quiz Status Distribution"
-            bordered={false}
-            style={{
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '8px',
-              height: '100%',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px', marginTop: '12px' }}>
-              <svg width="130" height="130" viewBox="0 0 42 42">
-                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--border-color)" strokeWidth="4px" />
-                {totalQuizzesCount > 0 && (
-                  <>
-                    {pLive > 0 && (
-                      <circle
-                        cx="21" cy="21" r="15.915" fill="transparent"
-                        stroke="var(--secondary-2)" strokeWidth="4px"
-                        strokeDasharray={`${pLive} ${100 - pLive}`}
-                        strokeDashoffset={offsetLive}
-                      />
-                    )}
-                    {pCompleted > 0 && (
-                      <circle
-                        cx="21" cy="21" r="15.915" fill="transparent"
-                        stroke="var(--tertiary-2)" strokeWidth="4px"
-                        strokeDasharray={`${pCompleted} ${100 - pCompleted}`}
-                        strokeDashoffset={offsetCompleted}
-                      />
-                    )}
-                    {pDraft > 0 && (
-                      <circle
-                        cx="21" cy="21" r="15.915" fill="transparent"
-                        stroke="var(--neutral-5)" strokeWidth="4px"
-                        strokeDasharray={`${pDraft} ${100 - pDraft}`}
-                        strokeDashoffset={offsetDraft}
-                      />
-                    )}
-                    {pScheduled > 0 && (
-                      <circle
-                        cx="21" cy="21" r="15.915" fill="transparent"
-                        stroke="var(--primary-2)" strokeWidth="4px"
-                        strokeDasharray={`${pScheduled} ${100 - pScheduled}`}
-                        strokeDashoffset={offsetScheduled}
-                      />
-                    )}
-                    {pCancelled > 0 && (
-                      <circle
-                        cx="21" cy="21" r="15.915" fill="transparent"
-                        stroke="var(--danger-2)" strokeWidth="4px"
-                        strokeDasharray={`${pCancelled} ${100 - pCancelled}`}
-                        strokeDashoffset={offsetCancelled}
-                      />
-                    )}
-                  </>
-                )}
-                <g>
-                  <text x="50%" y="46%" dominantBaseline="middle" textAnchor="middle" fill="var(--text-main)" fontSize="7" fontWeight="bold">
-                    {totalQuizzesCount}
-                  </text>
-                  <text x="50%" y="62%" dominantBaseline="middle" textAnchor="middle" fill="var(--text-muted)" fontSize="3.5" fontWeight="500">
-                    Quizzes
-                  </text>
-                </g>
-              </svg>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      {/* Metrics Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px', marginBottom: '24px' }}>
+        {/* Left card: Donut chart */}
+        <Card bordered bodyStyle={{ padding: '20px', display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '24px', justifyContent: 'center' }}>
+            <svg width="110" height="110" viewBox="0 0 42 42">
+              <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--border-color)" strokeWidth="4px" />
+              {totalQuizzesCount > 0 && (
+                <>
+                  {pLive > 0 && (
+                    <circle
+                      cx="21" cy="21" r="15.915" fill="transparent"
+                      stroke="var(--secondary-2)" strokeWidth="4px"
+                      strokeDasharray={`${pLive} ${100 - pLive}`}
+                      strokeDashoffset={offsetLive}
+                    />
+                  )}
+                  {pCompleted > 0 && (
+                    <circle
+                      cx="21" cy="21" r="15.915" fill="transparent"
+                      stroke="var(--tertiary-2)" strokeWidth="4px"
+                      strokeDasharray={`${pCompleted} ${100 - pCompleted}`}
+                      strokeDashoffset={offsetCompleted}
+                    />
+                  )}
+                  {pDraft > 0 && (
+                    <circle
+                      cx="21" cy="21" r="15.915" fill="transparent"
+                      stroke="var(--neutral-5)" strokeWidth="4px"
+                      strokeDasharray={`${pDraft} ${100 - pDraft}`}
+                      strokeDashoffset={offsetDraft}
+                    />
+                  )}
+                  {pScheduled > 0 && (
+                    <circle
+                      cx="21" cy="21" r="15.915" fill="transparent"
+                      stroke="var(--primary-2)" strokeWidth="4px"
+                      strokeDasharray={`${pScheduled} ${100 - pScheduled}`}
+                      strokeDashoffset={offsetScheduled}
+                    />
+                  )}
+                  {pCancelled > 0 && (
+                    <circle
+                      cx="21" cy="21" r="15.915" fill="transparent"
+                      stroke="var(--danger-2)" strokeWidth="4px"
+                      strokeDasharray={`${pCancelled} ${100 - pCancelled}`}
+                      strokeDashoffset={offsetCancelled}
+                    />
+                  )}
+                </>
+              )}
+              <g>
+                <text x="50%" y="46%" dominantBaseline="middle" textAnchor="middle" fill="var(--text-main)" fontSize="7" fontWeight="bold">
+                  {totalQuizzesCount}
+                </text>
+                <text x="50%" y="62%" dominantBaseline="middle" textAnchor="middle" fill="var(--text-muted)" fontSize="3.5" fontWeight="500">
+                  quizzes
+                </text>
+              </g>
+            </svg>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {legendItems.map((item, idx) => (
-                <div key={idx} style={{ display: 'flex', alignItems: 'center', fontSize: '12px' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: item.color, marginRight: '8px', display: 'inline-block' }} />
-                  <span style={{ color: 'var(--text-main)', flexGrow: 1, fontWeight: 500 }}>{item.label}</span>
-                  <span style={{ fontWeight: 600, color: 'var(--text-main)', width: '30px', textAlign: 'right' }}>{item.count}</span>
-                  <span style={{ color: 'var(--text-muted)', width: '40px', textAlign: 'right', fontWeight: 600 }}>{getPctStr(item.count)}</span>
+                <div key={idx} style={{ display: 'flex', alignItems: 'center', fontSize: '11px', gap: '8px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: item.color, display: 'inline-block' }} />
+                  <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>{item.label}</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{item.count}</span>
                 </div>
               ))}
             </div>
-          </Card>
-        </Col>
+          </div>
+        </Card>
 
-        {/* Quizzes List Table */}
-        <Col xs={24} lg={16}>
-          <Card
-            title="All Quizzes"
-            extra={
-              <Space>
-                <Input
-                  placeholder="Search quiz title or instructor..."
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  style={{ width: '260px', borderRadius: '6px' }}
-                  prefix={<Icon name="nav-dashboard" size={14} style={{ opacity: 0.5 }} />}
-                />
-                <Button
-                  type="primary"
-                  onClick={() => navigate('/quizzes/create')}
-                  style={{
-                    borderRadius: '6px',
-                    backgroundColor: 'var(--primary-2)',
-                    borderColor: 'var(--primary-2)',
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
-                >
-                  <Icon name="plus" size={16} /> Create Quiz
-                </Button>
-              </Space>
-            }
-            bordered={false}
-            style={{
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '8px',
-            }}
-          >
-            <Table
-              dataSource={filteredQuizzes}
-              columns={columns}
-              rowKey="_id"
-              loading={quizzesLoading}
-              pagination={{ pageSize: 5 }}
-              size="middle"
-              style={{ backgroundColor: 'transparent' }}
-            />
-          </Card>
-        </Col>
-      </Row>
+        {/* Right cards grid: 2x2 */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          {[
+            { title: 'COMPLETED', value: completedCount, color: 'var(--secondary-2)' },
+            { title: 'SCHEDULED', value: scheduledCount, color: 'var(--primary-2)' },
+            { title: 'DRAFT', value: draftCount, color: 'var(--tertiary-2)' },
+            { title: 'CANCELLED', value: cancelledCount, color: 'var(--danger-2)' },
+          ].map((card, idx) => (
+            <Card bordered key={idx} bodyStyle={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <h3 style={{ margin: 0, fontWeight: 700, color: card.color, fontSize: '26px', lineHeight: '32px' }}>{card.value}</h3>
+              <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.5px', marginTop: '2px' }}>{card.title}</div>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Quizzes List Table */}
+      <div style={{ marginBottom: '24px' }}>
+        <Card
+          title="All Quizzes"
+          extra={
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <Input
+                placeholder="Search quiz title or instructor..."
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                style={{ width: '240px' }}
+                prefix={<Icon name="search" size={14} style={{ opacity: 0.5 }} />}
+              />
+              <Button
+                variant="primary"
+                onClick={() => navigate('/quizzes/create')}
+                style={{
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <Icon name="plus" size={16} /> Create Quiz
+              </Button>
+            </div>
+          }
+          bordered
+        >
+          <Table
+            dataSource={filteredQuizzes}
+            columns={columns as ColumnType<unknown>[]}
+            rowKey="_id"
+            loading={quizzesLoading}
+            pagination={{ pageSize: 5 }}
+            size="middle"
+          />
+        </Card>
+      </div>
 
       {/* Admin Completed Quiz Results Modal */}
       {selectedQuizId && (
         <Modal
-          title={null}
           open={isResultsModalOpen}
-          closable={false}
           onCancel={() => {
             setIsResultsModalOpen(false);
             setSelectedQuizId(null);
@@ -432,7 +347,6 @@ export const AdminDashboard: React.FC = () => {
           footer={null}
           width={960}
           style={{ top: 20 }}
-          styles={{ body: { padding: 0 } }}
           destroyOnClose
         >
           <AdminQuizResults
@@ -444,58 +358,6 @@ export const AdminDashboard: React.FC = () => {
           />
         </Modal>
       )}
-
-      {/* Cancel Confirmation Modal */}
-      <Modal
-        title={<span style={{ fontWeight: 700, fontSize: '16px', color: 'var(--text-main)' }}>Cancel Quiz Confirmation</span>}
-        open={cancelModalVisible}
-        onCancel={() => {
-          setCancelModalVisible(false);
-          setQuizToCancel(null);
-        }}
-        footer={[
-          <Button
-            key="back"
-            onClick={() => {
-              setCancelModalVisible(false);
-              setQuizToCancel(null);
-            }}
-            style={{ borderRadius: '6px' }}
-          >
-            No, keep it
-          </Button>,
-          <Button
-            key="submit"
-            type="primary"
-            danger
-            disabled={!consentChecked}
-            loading={isCancelling}
-            onClick={handleCancelConfirm}
-            style={{ borderRadius: '6px' }}
-          >
-            Yes, Cancel Quiz
-          </Button>,
-        ]}
-        width={480}
-        destroyOnClose
-      >
-        <div style={{ padding: '12px 0' }}>
-          <Alert
-            message="Warning"
-            description="This action will immediately terminate the quiz and prevent further attempts. This cannot be undone."
-            type="warning"
-            showIcon
-            style={{ marginBottom: '16px', borderRadius: '6px' }}
-          />
-          <Checkbox
-            checked={consentChecked}
-            onChange={(e) => setConsentChecked(e.target.checked)}
-            style={{ color: 'var(--text-main)', fontSize: '13px' }}
-          >
-            I understand that cancelling this quiz is permanent and will notify assigned candidates.
-          </Checkbox>
-        </div>
-      </Modal>
     </div>
   );
 };

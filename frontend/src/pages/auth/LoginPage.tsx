@@ -3,26 +3,58 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { setCredentials } from '../../store/slices/authSlice';
 import { useLoginMutation } from '../../services/api';
-import { Form, Input, Button, Alert, message } from 'antd';
+import Button from '../../components/atoms/Button/Button';
+import Input from '../../components/atoms/Input/Input';
+import Alert from '../../components/atoms/Alert/Alert';
+import FormField from '../../components/molecules/FormField/FormField';
+import message from '../../utils/message';
 
 export const LoginPage: React.FC = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [emailError, setEmailError] = useState<string | undefined>(undefined);
+  const [passwordError, setPasswordError] = useState<string | undefined>(undefined);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   const [login, { isLoading }] = useLoginMutation();
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const onFinish = async (values: any) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setErrorMsg(null);
+
+    let valid = true;
+    if (!email.trim()) {
+      setEmailError('Please enter your email address');
+      valid = false;
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      setEmailError('Please enter a valid email address');
+      valid = false;
+    } else {
+      setEmailError(undefined);
+    }
+
+    if (!password) {
+      setPasswordError('Please enter your password');
+      valid = false;
+    } else {
+      setPasswordError(undefined);
+    }
+
+    if (!valid) return;
+
     try {
-      const response = await login(values).unwrap();
+      const response = await login({ email, password }).unwrap();
       if (response.success && response.data) {
         dispatch(setCredentials(response.data));
         message.success(`Welcome back, ${response.data.name}!`);
         navigate('/dashboard');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Login error:', err);
-      setErrorMsg(err.data?.message || 'Invalid email or password. Please try again.');
+      const errPayload = err as { data?: { message?: string } };
+      setErrorMsg(errPayload.data?.message || 'Invalid email or password. Please try again.');
     }
   };
 
@@ -100,65 +132,51 @@ export const LoginPage: React.FC = () => {
         />
       )}
 
-      <Form name="login_form" layout="vertical" onFinish={onFinish} requiredMark={false}>
-        <Form.Item
-          name="email"
-          label={<span style={{ fontWeight: 500, fontSize: '12px', color: 'var(--text-main)' }}>Email address</span>}
-          rules={[
-            { required: true, message: 'Please enter your email address' },
-            { type: 'email', message: 'Please enter a valid email address' },
-          ]}
+      <form onSubmit={handleSubmit}>
+        <FormField
+          label="Email address"
+          error={emailError}
+          required
         >
           <Input
+            type="email"
             placeholder="aryan@company.com"
             size="large"
-            style={{
-              borderRadius: '8px',
-              backgroundColor: 'var(--bg-surface)',
-              borderColor: 'var(--border-color)',
-              color: 'var(--text-main)',
-              height: '42px',
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (emailError) setEmailError(undefined);
             }}
           />
-        </Form.Item>
+        </FormField>
 
-        <Form.Item
-          name="password"
-          label={<span style={{ fontWeight: 500, fontSize: '12px', color: 'var(--text-main)' }}>Password</span>}
-          rules={[{ required: true, message: 'Please enter your password' }]}
+        <FormField
+          label="Password"
+          error={passwordError}
+          required
         >
           <Input.Password
             placeholder="••••••••"
             size="large"
-            style={{
-              borderRadius: '8px',
-              backgroundColor: 'var(--bg-surface)',
-              borderColor: 'var(--border-color)',
-              color: 'var(--text-main)',
-              height: '42px',
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (passwordError) setPasswordError(undefined);
             }}
           />
-        </Form.Item>
+        </FormField>
 
-        <Form.Item style={{ marginTop: '32px', marginBottom: '16px' }}>
+        <div style={{ marginTop: '32px', marginBottom: '16px' }}>
           <Button
-            type="primary"
-            htmlType="submit"
+            type="submit"
             size="large"
             block
             loading={isLoading}
-            style={{
-              borderRadius: '8px',
-              height: '44px',
-              fontWeight: 600,
-              backgroundColor: 'var(--primary-2)',
-              borderColor: 'var(--primary-2)',
-            }}
           >
             Sign In
           </Button>
-        </Form.Item>
-      </Form>
+        </div>
+      </form>
 
       <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '13px', color: 'var(--text-muted)' }}>
         Don't have an account?{' '}

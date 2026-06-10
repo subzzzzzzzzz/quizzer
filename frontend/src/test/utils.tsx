@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { PropsWithChildren } from 'react';
 import { render } from '@testing-library/react';
 import type { RenderOptions } from '@testing-library/react';
@@ -7,8 +8,9 @@ import { MemoryRouter } from 'react-router-dom';
 import authReducer from '../store/slices/authSlice';
 import themeReducer from '../store/slices/themeSlice';
 import { api } from '../services/api';
+import { RootState } from '../store';
 
-export function setupTestStore(preloadedState?: any) {
+export function setupTestStore(preloadedState?: Partial<RootState>) {
   return configureStore({
     reducer: {
       auth: authReducer,
@@ -24,7 +26,7 @@ export function setupTestStore(preloadedState?: any) {
 }
 
 interface ExtendedRenderOptions extends Omit<RenderOptions, 'queries'> {
-  preloadedState?: any;
+  preloadedState?: Partial<RootState>;
   store?: ReturnType<typeof setupTestStore>;
   route?: string;
   initialEntries?: string[];
@@ -40,7 +42,7 @@ export function renderWithProviders(
     ...renderOptions
   }: ExtendedRenderOptions = {}
 ) {
-  function Wrapper({ children }: PropsWithChildren<{}>): React.JSX.Element {
+  function Wrapper({ children }: PropsWithChildren): React.JSX.Element {
     return (
       <Provider store={store}>
         <MemoryRouter initialEntries={initialEntries}>

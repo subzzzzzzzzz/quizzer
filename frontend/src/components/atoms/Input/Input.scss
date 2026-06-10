@@ -1,0 +1,131 @@
+.input-container {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-surface);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &:focus-within:not(.input-container--disabled) {
+    border-color: var(--primary-2);
+    box-shadow: 0 0 0 2px rgba(83, 74, 183, 0.15);
+  }
+
+  &--disabled {
+    background-color: var(--bg-surface-hover);
+    cursor: not-allowed;
+  }
+
+  /* Sizes */
+  &--small {
+    height: 32px;
+  }
+
+  &--medium {
+    height: 40px;
+  }
+
+  &--large {
+    height: 42px;
+  }
+
+  .custom-input {
+    width: 100%;
+    height: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    padding: 0 14px;
+    font-family: var(--font-family);
+    font-size: 13px;
+    color: var(--text-main);
+
+    &::placeholder {
+      color: var(--text-muted);
+      opacity: 0.8;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      color: var(--text-muted);
+    }
+  }
+
+  /* Prefix alignment */
+  &--has-prefix {
+    .custom-input {
+      padding-left: 8px;
+    }
+  }
+
+  .input-prefix {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 12px;
+    color: var(--text-muted);
+  }
+
+  /* Suffix Button alignment */
+  .input-suffix-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    outline: none;
+    background: transparent;
+    padding-right: 14px;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: color 0.2s;
+
+    &:hover {
+      color: var(--text-main);
+    }
+  }
+}
+
+/* TextArea container */
+.input-container-textarea {
+  display: block;
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-surface);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  padding: 8px 12px;
+
+  &:focus-within:not(.input-container-textarea--disabled) {
+    border-color: var(--primary-2);
+    box-shadow: 0 0 0 2px rgba(83, 74, 183, 0.15);
+  }
+
+  &--disabled {
+    background-color: var(--bg-surface-hover);
+    cursor: not-allowed;
+  }
+
+  .custom-textarea {
+    width: 100%;
+    min-height: 80px;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: var(--font-family);
+    font-size: 13px;
+    color: var(--text-main);
+    resize: vertical;
+
+    &::placeholder {
+      color: var(--text-muted);
+      opacity: 0.8;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      color: var(--text-muted);
+    }
+  }
+}

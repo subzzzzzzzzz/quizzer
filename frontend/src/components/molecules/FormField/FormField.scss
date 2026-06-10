@@ -1,0 +1,46 @@
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  margin-bottom: 16px;
+
+  .form-field-label {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-family);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-main);
+    line-height: 1.2;
+  }
+
+  .form-field-required {
+    color: var(--danger-2);
+    margin-left: 3px;
+    font-weight: bold;
+  }
+
+  .form-field-control {
+    width: 100%;
+  }
+
+  .form-field-error-msg {
+    font-family: var(--font-family);
+    font-size: 11px;
+    color: var(--danger-2);
+    font-weight: 500;
+    margin-top: 2px;
+  }
+
+  &--error {
+    .input-container,
+    .input-container-textarea {
+      border-color: var(--danger-2);
+      &:focus-within {
+        border-color: var(--danger-2);
+        box-shadow: 0 0 0 2px rgba(226, 75, 74, 0.15);
+      }
+    }
+  }
+}

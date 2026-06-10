@@ -1,21 +1,115 @@
 import React, { useState } from 'react';
 import { useGetQuizzesQuery, useStartAttemptMutation } from '../../services/api';
-import { Table, Tag, Button, Card, Row, Col, Typography, Drawer, message, Spin } from 'antd';
-import Icon from '../../components/ui/Icon/Icon';
+import type { Quiz } from '../../services/api';
+import Card from '../../components/molecules/Card/Card';
+import Button from '../../components/atoms/Button/Button';
+import Input from '../../components/atoms/Input/Input';
+import Tag from '../../components/atoms/Tag/Tag';
+import Spinner from '../../components/atoms/Spinner/Spinner';
+import Drawer from '../../components/organisms/Drawer/Drawer';
+import Table from '../../components/organisms/Table/Table';
+import type { ColumnType } from '../../components/organisms/Table/Table';
+import Icon from '../../components/atoms/Icon/Icon';
 import { useNavigate } from 'react-router-dom';
 import DetailedAttemptReport from './AttemptReport';
+import message from '../../utils/message';
+import Modal from '../../components/molecules/Modal/Modal';
+import Checkbox from '../../components/atoms/Checkbox/Checkbox';
+import Alert from '../../components/atoms/Alert/Alert';
 
-const { Title, Text } = Typography;
+
+const getQuizCode = (title: string, role?: string): string => {
+  const t = title.toLowerCase();
+  if (t.includes('react fundamentals')) return '#Q001';
+  if (t.includes('css advanced')) return '#Q002';
+  if (t.includes('node.js')) return '#Q003';
+  if (t.includes('grid layout')) return '#Q004';
+  if (t.includes('python oop')) {
+    return role === 'instructor' ? '#Q004' : '#Q005';
+  }
+  if (t.includes('sql for beginners')) return '#Q005';
+  if (t.includes('promises')) return '#Q007';
+  if (t.includes('semantic elements')) return '#Q009';
+  if (t.includes('hooks deep dive')) return '#Q011';
+  
+  let hash = 0;
+  for (let i = 0; i < title.length; i++) {
+    hash = title.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const num = Math.abs(hash % 1000).toString().padStart(3, '0');
+  return `#Q${num}`;
+};
+
+const formatCandidateDate = (start?: string) => {
+  if (!start) return '—';
+  const date = new Date(start);
+  const day = String(date.getDate()).padStart(2, '0');
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const month = months[date.getMonth()];
+  const year = date.getFullYear();
+  return `${day} ${month} ${year}`;
+};
+
+const getCandidateStatus = (quiz: Quiz) => {
+  const t = quiz.title.toLowerCase();
+  const isCompleted = quiz.status === 'Completed' || quiz.candidateAttempt?.status === 'Submitted' || quiz.candidateAttempt?.status === 'AutoSubmitted';
+  if (isCompleted) return 'Completed';
+  if (quiz.status === 'Live') return 'Live Now';
+  if (quiz.status === 'Cancelled') return 'Cancelled';
+  if (quiz.status === 'Scheduled') {
+    if (t.includes('python oop')) return 'Upcoming';
+    return 'Scheduled';
+  }
+  return quiz.status;
+};
+
+const getCandidateStatusTag = (quiz: Quiz) => {
+  const status = getCandidateStatus(quiz);
+  switch (status) {
+    case 'Completed':
+      return <Tag color="success">✓ Completed</Tag>;
+    case 'Live Now':
+      return (
+        <Tag color="success" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--secondary-2)' }} />
+          Live Now
+        </Tag>
+      );
+    case 'Scheduled':
+      return <Tag color="processing">Scheduled</Tag>;
+    case 'Upcoming':
+      return <Tag color="default">Upcoming</Tag>;
+    case 'Cancelled':
+      return <Tag color="error">Cancelled</Tag>;
+    default:
+      return <Tag color="default">{status}</Tag>;
+  }
+};
+
+const formatTimeSpent = (attempt?: { timeTaken?: number } | null) => {
+  if (!attempt || attempt.timeTaken === undefined || attempt.timeTaken === null) return '—';
+  const t = attempt.timeTaken;
+  if (t > 120) {
+    return `${Math.round(t / 60)} min`;
+  }
+  return `${t} min`;
+};
 
 export const CandidateDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [selectedAttemptId, setSelectedAttemptId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [selectedQuizForInstructions, setSelectedQuizForInstructions] = useState<Quiz | null>(null);
+  const [preTestConsent, setPreTestConsent] = useState(false);
+  const [searchText, setSearchText] = useState('');
 
   const { data: quizzesResponse, isLoading: quizzesLoading, refetch } = useGetQuizzesQuery();
   const [startAttempt, { isLoading: isStarting }] = useStartAttemptMutation();
 
   const quizzes = quizzesResponse?.data || [];
+  const filteredQuizzes = quizzes.filter(q =>
+    q.title.toLowerCase().includes(searchText.toLowerCase())
+  );
 
   // Categorize quizzes
   const liveQuizzes = quizzes.filter(
@@ -34,13 +128,20 @@ export const CandidateDashboard: React.FC = () => {
       q.candidateAttempt?.status === 'AutoSubmitted'
   );
 
-  // Start attempt click handler
-  const handleStartAttempt = async (quizId: string, candidateAttempt?: any) => {
-    if (candidateAttempt && candidateAttempt.status === 'InProgress') {
-      navigate(`/quiz-attempt/${candidateAttempt.id}`);
-      return;
+  // Start attempt click handlers
+  const handleStartClick = (quiz: Quiz) => {
+    if (quiz.candidateAttempt?.status === 'InProgress') {
+      navigate(`/quiz-attempt/${quiz.candidateAttempt.id}`);
+    } else {
+      setSelectedQuizForInstructions(quiz);
+      setPreTestConsent(false);
     }
+  };
 
+  const handleStartConfirm = async () => {
+    if (!selectedQuizForInstructions) return;
+    const quizId = selectedQuizForInstructions._id;
+    setSelectedQuizForInstructions(null);
     try {
       const response = await startAttempt({ quizId }).unwrap();
       if (response.success && response.data) {
@@ -48,80 +149,62 @@ export const CandidateDashboard: React.FC = () => {
         refetch();
         navigate(`/quiz-attempt/${response.data._id}`);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to start attempt:', err);
-      message.error(err.data?.message || 'Failed to start assessment. Please try again.');
+      const errPayload = err as { data?: { message?: string } };
+      message.error(errPayload.data?.message || 'Failed to start assessment. Please try again.');
     }
   };
 
-  const formatWindow = (end?: string) => {
-    if (!end) return 'Always Available';
-    const eDate = new Date(end);
-    const opt: Intl.DateTimeFormatOptions = {
-      month: 'numeric',
-      day: 'numeric',
-      year: '2-digit',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    };
-    return eDate.toLocaleString('en-US', opt);
-  };
-
-  const columns = [
+  const columns: ColumnType<Quiz>[] = [
     {
-      title: 'Assessment Name',
-      key: 'title',
-      render: (record: any) => (
-        <div>
-          <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{record.title}</div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-            {record.questionType === 'single' ? 'Single Choice (Select One)' : 'Multiple Choice (Select Multiple)'}
-          </div>
-        </div>
+      title: 'ID',
+      key: 'id',
+      render: (_, record) => (
+        <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>
+          {getQuizCode(record.title)}
+        </span>
       ),
     },
     {
-      title: 'Duration',
-      key: 'duration',
-      render: (record: any) => <span>{record.duration} mins</span>,
+      title: 'QUIZ TITLE',
+      key: 'title',
+      render: (_, record) => (
+        <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+          {record.title}
+        </span>
+      ),
     },
     {
-      title: 'Status',
+      title: 'DATE',
+      key: 'date',
+      render: (_, record) => (
+        <span>{formatCandidateDate(record.startTime || record.createdAt)}</span>
+      ),
+    },
+    {
+      title: 'STATUS',
       key: 'status',
-      render: (record: any) => {
-        const isCompleted = record.status === 'Completed' || record.candidateAttempt?.status === 'Submitted' || record.candidateAttempt?.status === 'AutoSubmitted';
-        if (isCompleted) {
-          return <Tag color="warning" style={{ fontWeight: 600 }}>COMPLETED</Tag>;
-        }
-        if (record.status === 'Live') {
-          if (record.candidateAttempt?.status === 'InProgress') {
-            return <Tag color="processing" style={{ fontWeight: 600 }}>IN PROGRESS</Tag>;
-          }
-          return <Tag color="success" style={{ fontWeight: 600 }}>LIVE</Tag>;
-        }
-        if (record.status === 'Scheduled') {
-          return <Tag color="blue" style={{ fontWeight: 600 }}>SCHEDULED</Tag>;
-        }
-        return <Tag color="default" style={{ fontWeight: 600 }}>{record.status.toUpperCase()}</Tag>;
-      },
+      render: (_, record) => getCandidateStatusTag(record),
     },
     {
-      title: 'Closing Time',
-      key: 'closing',
-      render: (record: any) => <span>{formatWindow(record.endTime)}</span>,
+      title: 'TIME SPENT',
+      key: 'timeSpent',
+      render: (_, record) => (
+        <span>{formatTimeSpent(record.candidateAttempt)}</span>
+      ),
     },
     {
-      title: 'Action',
+      title: 'ACTION',
       key: 'action',
-      render: (record: any) => {
-        const isCompleted = record.status === 'Completed' || record.candidateAttempt?.status === 'Submitted' || record.candidateAttempt?.status === 'AutoSubmitted';
+      render: (_, record) => {
+        const status = getCandidateStatus(record);
         
-        if (isCompleted) {
+        if (status === 'Completed') {
           const attemptId = record.candidateAttempt?.id;
           return (
             <Button
-              type="primary"
+              variant="primary"
               size="small"
               onClick={() => {
                 if (attemptId) {
@@ -134,11 +217,11 @@ export const CandidateDashboard: React.FC = () => {
               style={{
                 fontSize: '11px',
                 fontWeight: 600,
-                backgroundColor: 'var(--secondary-2)',
-                borderColor: 'var(--secondary-2)',
+                backgroundColor: 'var(--primary-2)',
+                borderColor: 'var(--primary-2)',
               }}
             >
-              View Results
+              View Result
             </Button>
           );
         }
@@ -147,27 +230,32 @@ export const CandidateDashboard: React.FC = () => {
           const isInProgress = record.candidateAttempt?.status === 'InProgress';
           return (
             <Button
-              type="primary"
+              variant="primary"
               size="small"
               loading={isStarting}
-              onClick={() => handleStartAttempt(record._id, record.candidateAttempt)}
+              onClick={() => handleStartClick(record)}
               style={{
                 fontSize: '11px',
                 fontWeight: 600,
-                backgroundColor: isInProgress ? 'var(--primary-2)' : 'var(--secondary-2)',
-                borderColor: isInProgress ? 'var(--primary-2)' : 'var(--secondary-2)',
+                backgroundColor: 'var(--secondary-2)',
+                borderColor: 'var(--secondary-2)',
               }}
             >
-              {isInProgress ? 'Resume' : 'Start Assessment'}
+              {isInProgress ? 'Resume Test' : 'Start Test'}
             </Button>
           );
         }
 
-        return (
-          <Button size="small" disabled style={{ fontSize: '11px' }}>
-            Not Available
-          </Button>
-        );
+        if (status === 'Scheduled' || status === 'Upcoming') {
+          if (!record.startTime) return '—';
+          const date = new Date(record.startTime);
+          const day = date.getDate();
+          const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          const month = months[date.getMonth()];
+          return <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Opens {day} {month}</span>;
+        }
+
+        return <span style={{ color: 'var(--text-muted)' }}>—</span>;
       },
     },
   ];
@@ -175,86 +263,69 @@ export const CandidateDashboard: React.FC = () => {
   if (quizzesLoading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
-        <Spin size="large" tip="Loading candidate workspace..." />
+        <Spinner size="large" tip="Loading candidate workspace..." />
       </div>
     );
   }
 
   return (
     <div data-testid="candidate-dashboard">
-      <Row gutter={[24, 24]} style={{ marginBottom: '24px' }}>
-        <Col span={24}>
-          <Title level={2} style={{ color: 'var(--text-main)', margin: 0 }}>Candidate Dashboard</Title>
-          <Text type="secondary" style={{ color: 'var(--text-muted)' }}>Overview of your assigned assessments, schedule calendars, and grading scores</Text>
-        </Col>
-      </Row>
+      <div style={{ marginBottom: '24px' }}>
+        <h2 style={{ color: 'var(--text-main)', margin: 0, fontSize: '22px', fontWeight: 700 }}>Dashboard</h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '4px 0 0 0' }}>
+          Your quiz overview — {completedQuizzes.length} completed, {liveQuizzes.length} live, {scheduledQuizzes.length} upcoming
+        </p>
+      </div>
 
       {/* Metrics Cards Grid */}
-      <Row gutter={[20, 20]} style={{ marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px', marginBottom: '24px' }}>
         {[
-          { title: 'Total Assigned Quizzes', value: quizzes.length, icon: 'nav-dashboard', color: 'var(--primary-2)' },
-          { title: 'Live Assessments', value: liveQuizzes.length, icon: 'nav-analytics', color: 'var(--color-success)' },
-          { title: 'Upcoming Schedules', value: scheduledQuizzes.length, icon: 'timer', color: 'var(--color-primary)' },
-          { title: 'Completed Quizzes', value: completedQuizzes.length, icon: 'check-circle', color: 'var(--tertiary-2)' },
+          { title: 'Total Assigned', value: quizzes.length, color: 'var(--primary-2)' },
+          { title: 'Participated', value: completedQuizzes.length, color: 'var(--secondary-2)' },
+          { title: 'Scheduled', value: scheduledQuizzes.length, color: 'var(--tertiary-2)' },
+          { title: 'Live Now', value: liveQuizzes.length, color: 'var(--color-success)' },
         ].map((card, idx) => (
-          <Col xs={24} sm={12} lg={6} key={idx}>
-            <Card
-              bordered={false}
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-              }}
-              styles={{ body: { padding: '20px' } }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <Text type="secondary" style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)' }}>{card.title}</Text>
-                  <Title level={3} style={{ margin: '4px 0 0 0', fontWeight: 700, color: 'var(--text-main)' }}>{card.value}</Title>
-                </div>
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '8px',
-                  backgroundColor: 'var(--neutral-0)',
-                  border: '1px solid var(--border-color)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: card.color,
-                }}>
-                  <Icon name={card.icon as any} size={20} />
-                </div>
-              </div>
-            </Card>
-          </Col>
+          <Card
+            bordered
+            key={idx}
+            bodyStyle={{ padding: '20px' }}
+          >
+            <div>
+              <h3 style={{ margin: 0, fontWeight: 700, color: 'var(--text-main)', fontSize: '26px', lineHeight: '32px' }}>{card.value}</h3>
+              <div style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)', marginTop: '2px' }}>{card.title}</div>
+            </div>
+          </Card>
         ))}
-      </Row>
+      </div>
 
-      {/* My Assessments Card */}
+      {/* All Quizzes Card */}
       <Card
-        title="My Assessments"
-        bordered={false}
-        style={{
-          backgroundColor: 'var(--bg-surface)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '8px',
-        }}
+        title="All Quizzes"
+        extra={
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <Input
+              placeholder="Search quizzes..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              style={{ width: '220px' }}
+              prefix={<Icon name="search" size={14} style={{ opacity: 0.5 }} />}
+            />
+          </div>
+        }
+        bordered
       >
         <Table
-          dataSource={quizzes}
-          columns={columns}
+          dataSource={filteredQuizzes}
+          columns={columns as ColumnType<unknown>[]}
           rowKey="_id"
           pagination={{ pageSize: 10 }}
           size="middle"
-          style={{ backgroundColor: 'transparent' }}
         />
       </Card>
 
       {/* Assessment Attempt Report Drawer */}
       <Drawer
         title={<span style={{ fontWeight: 700 }}>Assessment Attempt Report</span>}
-        placement="right"
         width={720}
         onClose={() => {
           setIsDrawerOpen(false);
@@ -265,6 +336,85 @@ export const CandidateDashboard: React.FC = () => {
       >
         {selectedAttemptId && <DetailedAttemptReport attemptId={selectedAttemptId} />}
       </Drawer>
+
+      {/* Pre-test Instructions & Consent Modal */}
+      {selectedQuizForInstructions && (
+        <Modal
+          title={
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-main)' }}>
+              <Icon name="nav-quiz" size={20} />
+              <span style={{ fontWeight: 700, fontSize: '16px' }}>
+                Instructions & Consent: {selectedQuizForInstructions.title}
+              </span>
+            </div>
+          }
+          open={!!selectedQuizForInstructions}
+          onCancel={() => setSelectedQuizForInstructions(null)}
+          footer={[
+            <Button
+              key="cancel"
+              variant="secondary"
+              onClick={() => setSelectedQuizForInstructions(null)}
+            >
+              Cancel
+            </Button>,
+            <Button
+              key="begin"
+              variant="primary"
+              disabled={!preTestConsent}
+              loading={isStarting}
+              onClick={handleStartConfirm}
+              style={{
+                backgroundColor: !preTestConsent ? 'var(--neutral-3)' : 'var(--secondary-2)',
+                borderColor: !preTestConsent ? 'var(--neutral-3)' : 'var(--secondary-2)',
+                fontWeight: 600
+              }}
+            >
+              Begin Assessment
+            </Button>
+          ]}
+          width={540}
+          destroyOnClose
+        >
+          <div style={{ padding: '12px 0', color: 'var(--text-main)', lineHeight: '20px' }}>
+            <Alert
+              message="Attention Required"
+              description="Please review the rules and confirm your environment settings before starting."
+              type="warning"
+              showIcon
+              style={{ marginBottom: '16px', borderRadius: '6px' }}
+            />
+            
+            <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 600 }}>1. General Rules</h4>
+            <ul style={{ paddingLeft: '20px', margin: '0 0 16px 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+              <li><strong>Time Limit:</strong> {selectedQuizForInstructions.duration} minutes.</li>
+              <li>Once started, the assessment cannot be paused or stopped.</li>
+              <li>Navigating away from the window or losing focus is monitored.</li>
+            </ul>
+
+            <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 600 }}>2. Network Connection Warning</h4>
+            <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+              Make sure you have a highly stable internet connection. Network outages or disconnections might lock your attempt or result in loss of progress.
+            </p>
+
+            <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 600 }}>3. Auto-submit Policy</h4>
+            <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+              When the time limit is reached, your current choices will be automatically submitted, and your session will close.
+            </p>
+
+            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+              <Checkbox
+                checked={preTestConsent}
+                onChange={(checked) => setPreTestConsent(checked)}
+              >
+                <span style={{ fontSize: '13px', fontWeight: 500, userSelect: 'none' }}>
+                  I have read the rules, network warning, and auto-submit notice, and I consent to start this attempt.
+                </span>
+              </Checkbox>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

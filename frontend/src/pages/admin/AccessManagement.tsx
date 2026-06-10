@@ -1,11 +1,19 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Table, Card, Typography, Space, Alert, message, Tag } from 'antd';
 import { useAssignInstructorMutation, useGetInstructorsQuery } from '../../services/api';
-
-const { Title, Text } = Typography;
+import type { User } from '../../store/slices/authSlice';
+import Card from '../../components/molecules/Card/Card';
+import Button from '../../components/atoms/Button/Button';
+import Input from '../../components/atoms/Input/Input';
+import FormField from '../../components/molecules/FormField/FormField';
+import Tag from '../../components/atoms/Tag/Tag';
+import Alert from '../../components/atoms/Alert/Alert';
+import Table from '../../components/organisms/Table/Table';
+import type { ColumnType } from '../../components/organisms/Table/Table';
+import message from '../../utils/message';
 
 export const AccessManagement: React.FC = () => {
   const [emailInput, setEmailInput] = useState('');
+  const [emailError, setEmailError] = useState<string | undefined>(undefined);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
   const { data: instructorsResponse, isLoading, refetch } = useGetInstructorsQuery();
@@ -13,72 +21,88 @@ export const AccessManagement: React.FC = () => {
 
   const instructors = instructorsResponse?.data || [];
 
-  const handleAssign = async (values: { email: string }) => {
+  const handleAssign = async (e: React.FormEvent) => {
+    e.preventDefault();
     setErrorMsg(null);
+
+    if (!emailInput.trim()) {
+      setEmailError('Please enter an email address');
+      return;
+    }
+    if (!/\S+@\S+\.\S+/.test(emailInput)) {
+      setEmailError('Please enter a valid email address');
+      return;
+    }
+    setEmailError(undefined);
+
     try {
-      const response = await assignInstructor({ email: values.email }).unwrap();
+      const response = await assignInstructor({ email: emailInput }).unwrap();
       if (response.success) {
         message.success(`${response.data.email} added as instructor successfully`);
         setEmailInput('');
         refetch();
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Assign instructor error:', err);
-      // Custom message depending on error code (e.g. 404 "email not registered")
-      const errMsg = err.data?.message || 'Failed to assign instructor. Please check the email.';
+      const errPayload = err as { data?: { message?: string } };
+      const errMsg = errPayload.data?.message || 'Failed to assign instructor. Please check the email.';
       setErrorMsg(errMsg);
       message.error(`Failed to add - ${errMsg}`);
     }
   };
 
-  const columns = [
+  const columns: ColumnType<User>[] = [
     {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
-      render: (text: string) => <span style={{ fontWeight: 600 }}>{text}</span>,
+      render: (value) => <span style={{ fontWeight: 600 }}>{String(value)}</span>,
     },
     {
       title: 'Email Address',
       dataIndex: 'email',
       key: 'email',
+      render: (value) => <span>{String(value)}</span>,
     },
     {
       title: 'Role',
       dataIndex: 'role',
       key: 'role',
-      render: (role: string) => <Tag color="warning">{role.toUpperCase()}</Tag>,
+      render: (value) => <Tag color="warning">{String(value).toUpperCase()}</Tag>,
     },
     {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      render: (status: string) => (
-        <span style={{ color: status === 'active' ? 'var(--color-success)' : 'var(--color-error)' }}>
-          {status.toUpperCase()}
-        </span>
-      ),
+      render: (value) => {
+        const statusStr = String(value);
+        return (
+          <span style={{ color: statusStr === 'active' ? 'var(--color-success)' : 'var(--color-error)', fontWeight: 600 }}>
+            {statusStr.toUpperCase()}
+          </span>
+        );
+      },
     },
   ];
 
   return (
     <div>
-      <RowAndHeader />
+      <div style={{ marginBottom: '24px' }}>
+        <h2 style={{ color: 'var(--text-main)', margin: 0, fontSize: '22px', fontWeight: 700 }}>Access Management</h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '4px 0 0 0' }}>Manage organizational permissions and assign system roles</p>
+      </div>
 
       <Card
         title="Assign Instructor Role"
-        bordered={false}
+        bordered
         style={{
-          backgroundColor: 'var(--bg-surface)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '8px',
           marginBottom: '24px',
           maxWidth: '600px',
         }}
       >
-        <Text type="secondary" style={{ display: 'block', marginBottom: '16px' }}>
+        <div style={{ display: 'block', marginBottom: '16px', color: 'var(--text-muted)', fontSize: '13px' }}>
           Enter a registered candidate's email address below to elevate their profile to the Instructor role.
-        </Text>
+        </div>
 
         {errorMsg && (
           <Alert
@@ -91,14 +115,11 @@ export const AccessManagement: React.FC = () => {
           />
         )}
 
-        <Form layout="vertical" onFinish={handleAssign} requiredMark={false} fields={[{ name: 'email', value: emailInput }]}>
-          <Form.Item
-            name="email"
-            label={<span style={{ fontWeight: 500, fontSize: '12px' }}>User Email Address</span>}
-            rules={[
-              { required: true, message: 'Please input the email address' },
-              { type: 'email', message: 'Please enter a valid email address' },
-            ]}
+        <form onSubmit={handleAssign}>
+          <FormField
+            label="User Email Address"
+            error={emailError}
+            required
           >
             <Input
               placeholder="e.g. priya@company.com"
@@ -106,39 +127,25 @@ export const AccessManagement: React.FC = () => {
               onChange={(e) => {
                 setEmailInput(e.target.value);
                 setErrorMsg(null);
+                if (emailError) setEmailError(undefined);
               }}
-              style={{ borderRadius: '6px' }}
             />
-          </Form.Item>
+          </FormField>
 
           <Button
-            type="primary"
-            htmlType="submit"
+            type="submit"
             loading={isAssigning}
-            style={{
-              borderRadius: '6px',
-              backgroundColor: 'var(--primary-2)',
-              borderColor: 'var(--primary-2)',
-              fontWeight: 600,
-            }}
+            style={{ fontWeight: 600 }}
           >
             Assign Role
           </Button>
-        </Form>
+        </form>
       </Card>
 
-      <Card
-        title="Current Instructors"
-        bordered={false}
-        style={{
-          backgroundColor: 'var(--bg-surface)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '8px',
-        }}
-      >
+      <Card title="Current Instructors" bordered>
         <Table
           dataSource={instructors}
-          columns={columns}
+          columns={columns as ColumnType<unknown>[]}
           rowKey="_id"
           loading={isLoading}
           pagination={{ pageSize: 5 }}
@@ -148,12 +155,5 @@ export const AccessManagement: React.FC = () => {
     </div>
   );
 };
-
-const RowAndHeader = () => (
-  <Space direction="vertical" style={{ marginBottom: '24px' }}>
-    <Title level={2} style={{ color: 'var(--text-main)', margin: 0 }}>Access Management</Title>
-    <Text type="secondary" style={{ color: 'var(--text-muted)' }}>Manage organizational permissions and assign system roles</Text>
-  </Space>
-);
 
 export default AccessManagement;

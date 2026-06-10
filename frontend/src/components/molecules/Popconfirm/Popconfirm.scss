@@ -1,0 +1,84 @@
+.popconfirm-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.popconfirm-popover {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 8px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  z-index: 1050;
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: popconfirmFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Arrow indicator pointing down */
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: var(--bg-surface);
+  }
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: var(--border-color);
+    margin-top: 1px;
+    z-index: -1;
+  }
+}
+
+.popconfirm-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--font-family);
+}
+
+.popconfirm-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.3;
+}
+
+.popconfirm-description {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.popconfirm-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+@keyframes popconfirmFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}

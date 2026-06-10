@@ -72,13 +72,15 @@ describe('AssignedQuizzes component', () => {
     );
 
     expect(screen.getByTestId('assigned-quizzes-card')).toBeInTheDocument();
-    expect(screen.getByText('React 101')).toBeInTheDocument();
-    expect(screen.getByText('TypeScript 101')).toBeInTheDocument();
+    expect(screen.getAllByText('React 101')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('TypeScript 101')[0]).toBeInTheDocument();
 
-    const startBtns = screen.getAllByRole('button', { name: 'Start Attempt' });
+    const startBtns = screen.getAllByRole('button', { name: 'Start Attempt' }).filter(btn => btn.closest('tr'));
     expect(startBtns.length).toBe(2);
 
     fireEvent.click(startBtns[0]);
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: 'Begin Assessment' }));
     expect(await screen.findByText('Attempt Page')).toBeInTheDocument();
   });
 
@@ -107,7 +109,7 @@ describe('AssignedQuizzes component', () => {
       { initialEntries: ['/upcoming'] }
     );
 
-    const startBtn = screen.getByRole('button', { name: 'Resume' });
+    const startBtn = screen.getAllByRole('button', { name: 'Resume' }).find(btn => btn.closest('tr'))!;
     expect(startBtn).toBeInTheDocument();
 
     fireEvent.click(startBtn);
@@ -133,8 +135,10 @@ describe('AssignedQuizzes component', () => {
 
     const { unmount } = renderWithProviders(<AssignedQuizzes />);
 
-    const startBtns = screen.getAllByRole('button', { name: 'Start Attempt' });
+    const startBtns = screen.getAllByRole('button', { name: 'Start Attempt' }).filter(btn => btn.closest('tr'));
     fireEvent.click(startBtns[0]);
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: 'Begin Assessment' }));
 
     const spyConsole = vi.spyOn(console, 'error').mockImplementation(() => {});
     await vi.waitFor(() => expect(mockUnwrap1).toHaveBeenCalled());
@@ -148,8 +152,10 @@ describe('AssignedQuizzes component', () => {
     ] as any);
 
     renderWithProviders(<AssignedQuizzes />);
-    const newStartBtns = screen.getAllByRole('button', { name: 'Start Attempt' });
+    const newStartBtns = screen.getAllByRole('button', { name: 'Start Attempt' }).filter(btn => btn.closest('tr'));
     fireEvent.click(newStartBtns[0]);
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: 'Begin Assessment' }));
 
     await vi.waitFor(() => expect(mockUnwrap2).toHaveBeenCalled());
     spyConsole.mockRestore();
@@ -200,8 +206,8 @@ describe('AssignedQuizzes component', () => {
     expect(screen.queryByText('Node 101')).not.toBeInTheDocument();
 
     // q-4 (Live, InProgress) and q-5 (Scheduled) should render
-    expect(screen.getByText('Python 101')).toBeInTheDocument();
-    expect(screen.getByText('SQL 101')).toBeInTheDocument();
+    expect(screen.getAllByText('Python 101')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('SQL 101')[0]).toBeInTheDocument();
   });
 
   it('correctly disables/enables buttons based on status combinations', () => {
@@ -232,7 +238,7 @@ describe('AssignedQuizzes component', () => {
     expect(scheduledBtn).toBeDisabled();
 
     // Scheduled InProgress Quiz (isLive = false, isInProgress = true) => disabled = !false && !true => false (ENABLED)
-    const scheduledInProgressBtn = screen.getByRole('button', { name: 'Resume' });
+    const scheduledInProgressBtn = screen.getAllByRole('button', { name: 'Resume' }).find(btn => btn.closest('tr'))!;
     expect(scheduledInProgressBtn).toBeEnabled();
   });
 
@@ -264,8 +270,10 @@ describe('AssignedQuizzes component', () => {
       { initialEntries: ['/upcoming'] }
     );
 
-    const startBtns = screen.getAllByRole('button', { name: 'Start Attempt' });
+    const startBtns = screen.getAllByRole('button', { name: 'Start Attempt' }).filter(btn => btn.closest('tr'));
     fireEvent.click(startBtns[0]);
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: 'Begin Assessment' }));
 
     await vi.waitFor(() => expect(mockUnwrapSuccessFalse).toHaveBeenCalled());
     expect(screen.queryByText('Attempt Page')).not.toBeInTheDocument();
@@ -289,8 +297,10 @@ describe('AssignedQuizzes component', () => {
       </Routes>
     );
 
-    const startBtnsAfter = screen.getAllByRole('button', { name: 'Start Attempt' });
+    const startBtnsAfter = screen.getAllByRole('button', { name: 'Start Attempt' }).filter(btn => btn.closest('tr'));
     fireEvent.click(startBtnsAfter[0]);
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: 'Begin Assessment' }));
 
     await vi.waitFor(() => expect(mockUnwrapDataMissing).toHaveBeenCalled());
     expect(screen.queryByText('Attempt Page')).not.toBeInTheDocument();

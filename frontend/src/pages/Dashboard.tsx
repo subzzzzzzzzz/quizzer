@@ -4,7 +4,7 @@ import type { RootState } from '../store';
 import AdminDashboard from './admin/AdminDashboard';
 import InstructorDashboard from './instructor/InstructorDashboard';
 import CandidateDashboard from './candidate/CandidateDashboard';
-import { Spin } from 'antd';
+import Spinner from '../components/atoms/Spinner/Spinner';
 
 export const Dashboard: React.FC = () => {
   const { user, isAuthenticated } = useSelector((state: RootState) => state.auth);
@@ -12,7 +12,7 @@ export const Dashboard: React.FC = () => {
   if (!isAuthenticated || !user) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100px' }}>
-        <Spin tip="Verifying login status..." />
+        <Spinner tip="Verifying login status..." />
       </div>
     );
   }

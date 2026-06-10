@@ -76,6 +76,7 @@ describe('MainLayout', () => {
     expect(screen.getByText('Update Quizzes')).toBeInTheDocument();
     expect(screen.getByText('Analytics')).toBeInTheDocument();
     expect(screen.queryByText('Access Management')).not.toBeInTheDocument();
+    expect(screen.queryByText('Create Quiz')).not.toBeInTheDocument();
   });
 
   it('renders sidebar navigation specific to admin role', () => {

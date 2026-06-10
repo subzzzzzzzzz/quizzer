@@ -2,7 +2,7 @@ import React from 'react';
 import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
-import Icon from '../components/ui/Icon/Icon';
+import Icon from '../components/atoms/Icon/Icon';
 
 export const AuthLayout: React.FC = () => {
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);

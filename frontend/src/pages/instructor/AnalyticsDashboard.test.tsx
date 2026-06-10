@@ -83,7 +83,7 @@ describe('AnalyticsDashboard component', () => {
   it('renders completed quizzes table and hides draft quizzes', () => {
     renderWithProviders(<AnalyticsDashboard />);
 
-    expect(screen.getByText('Completed Quizzes Analytics')).toBeInTheDocument();
+    expect(screen.getAllByText('Analytics')[0]).toBeInTheDocument();
     expect(screen.getByText('CSS Grid Challenge')).toBeInTheDocument();
     // Draft quizzes should be filtered out
     expect(screen.queryByText('Draft Quiz (Unlisted)')).not.toBeInTheDocument();
@@ -92,7 +92,7 @@ describe('AnalyticsDashboard component', () => {
   it('opens results modal dialog when View Analytics is clicked and allows closing', async () => {
     renderWithProviders(<AnalyticsDashboard />);
 
-    const analyticsBtn = screen.getByRole('button', { name: 'View Analytics' });
+    const analyticsBtn = screen.getByRole('button', { name: 'View Result' });
     fireEvent.click(analyticsBtn);
 
     // The AdminQuizResults component should render in the modal

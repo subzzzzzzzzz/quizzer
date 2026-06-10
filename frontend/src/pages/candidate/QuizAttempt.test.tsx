@@ -143,7 +143,7 @@ describe('QuizAttempt component', () => {
     });
 
     expect(mockSubmitAttempt).toHaveBeenCalled();
-    expect(await screen.findByText('Quiz Submitted!')).toBeInTheDocument();
+    expect(await screen.findByText('Thank You!')).toBeInTheDocument();
   });
 
   it('triggers auto submit on countdown timer expiration', async () => {

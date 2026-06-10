@@ -1,8 +1,8 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AdminQuizResults from '../admin/AdminQuizResults';
-import { Button } from 'antd';
-import Icon from '../../components/ui/Icon/Icon';
+import Button from '../../components/atoms/Button/Button';
+import Icon from '../../components/atoms/Icon/Icon';
 
 export const QuizAnalyticsDetail: React.FC = () => {
   const { quizId } = useParams<{ quizId: string }>();
@@ -13,7 +13,7 @@ export const QuizAnalyticsDetail: React.FC = () => {
   return (
     <div>
       <div style={{ marginBottom: '16px' }}>
-        <Button onClick={() => navigate('/analytics')} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <Button variant="secondary" onClick={() => navigate('/analytics')} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <Icon name="arrow-left" size={14} /> Back to Analytics
         </Button>
       </div>

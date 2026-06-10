@@ -106,7 +106,8 @@ const rawSvgModules = import.meta.glob('/src/assets/icons/**/*.svg', {
 }) as Record<string, string>;
 
 // Clean up registry keys to match the file basenames (e.g. 'nav-dashboard')
-const svgRegistry: Record<string, string> = {};
+// eslint-disable-next-line react-refresh/only-export-components
+export const svgRegistry: Record<string, string> = {};
 for (const path in rawSvgModules) {
   const fileName = path.split('/').pop()?.replace('.svg', '');
   if (fileName) {
@@ -200,8 +201,8 @@ export const Icon: React.FC<IconProps> = ({
         fill={resolvedFill}
         stroke={resolvedStroke}
         strokeWidth={strokeWidth}
-        strokeLinecap={strokeLinecap as any}
-        strokeLinejoin={strokeLinejoin as any}
+        strokeLinecap={strokeLinecap as unknown as undefined}
+        strokeLinejoin={strokeLinejoin as unknown as undefined}
         role="img"
         aria-label={ariaLabel || title || name}
         style={{ color, ...props.style }}

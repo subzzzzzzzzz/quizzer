@@ -127,6 +127,7 @@ export async function getQuizzes(
             id: attempt._id,
             status: attempt.status,
             score: attempt.score,
+            timeTaken: attempt.timeTaken,
           };
         }
       }

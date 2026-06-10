@@ -66,8 +66,9 @@ describe('DetailedAttemptReport component', () => {
     renderWithProviders(<DetailedAttemptReport attemptId="attempt-1" />);
 
     expect(screen.getByText('Jane Candidate')).toBeInTheDocument();
-    expect(screen.getByText('jane@test.com')).toBeInTheDocument();
-    expect(screen.getByText('8 / 10 (80%)')).toBeInTheDocument();
+    expect(screen.getByText(/jane@test.com/)).toBeInTheDocument();
+    expect(screen.getByText('80%')).toBeInTheDocument();
+    expect(screen.getByText(/8 \/ 10/)).toBeInTheDocument();
     
     // Check questions
     expect(screen.getByText('What is HTML?')).toBeInTheDocument();

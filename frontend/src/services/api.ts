@@ -25,6 +25,7 @@ export interface Quiz {
     id: string;
     status: string;
     score: number;
+    timeTaken?: number;
   } | null;
 }
 
@@ -145,6 +146,24 @@ export interface AttemptReport {
   }>;
 }
 
+export interface LoginPayload {
+  email: string;
+  password?: string;
+}
+
+export interface SignupPayload {
+  name: string;
+  email: string;
+  password?: string;
+  role?: 'candidate' | 'instructor' | 'admin';
+}
+
+export interface AddParticipantsResponse {
+  importedCount: number;
+  unregisteredCount: number;
+  participants: Participant[];
+}
+
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({
@@ -162,7 +181,7 @@ export const api = createApi({
       query: () => '/auth/me',
       providesTags: ['Auth'],
     }),
-    login: builder.mutation<{ success: boolean; data: User }, any>({
+    login: builder.mutation<{ success: boolean; data: User }, LoginPayload>({
       query: (credentials) => ({
         url: '/auth/login',
         method: 'POST',
@@ -170,7 +189,7 @@ export const api = createApi({
       }),
       invalidatesTags: ['Auth', 'Quizzes', 'Attempts', 'Analytics'],
     }),
-    signup: builder.mutation<{ success: boolean; data: User }, any>({
+    signup: builder.mutation<{ success: boolean; data: User }, SignupPayload>({
       query: (userData) => ({
         url: '/auth/signup',
         method: 'POST',
@@ -187,7 +206,7 @@ export const api = createApi({
     }),
 
     // USER ADMIN ENDPOINTS
-    assignInstructor: builder.mutation<{ success: boolean; data: any }, { email: string }>({
+    assignInstructor: builder.mutation<{ success: boolean; data: User }, { email: string }>({
       query: (payload) => ({
         url: '/users/assign-instructor',
         method: 'POST',
@@ -195,7 +214,7 @@ export const api = createApi({
       }),
       invalidatesTags: ['Analytics'],
     }),
-    getInstructors: builder.query<{ success: boolean; data: any[] }, void>({
+    getInstructors: builder.query<{ success: boolean; data: User[] }, void>({
       query: () => '/users/instructors',
     }),
     getCandidates: builder.query<{ success: boolean; data: User[] }, void>({
@@ -277,7 +296,7 @@ export const api = createApi({
       }),
       invalidatesTags: ['Questions', 'Quizzes'],
     }),
-    bulkImportQuestions: builder.mutation<{ success: boolean; data: any }, { quizId: string; questions: any[] }>({
+    bulkImportQuestions: builder.mutation<{ success: boolean; data: Question[] }, { quizId: string; questions: Omit<Question, '_id' | 'createdAt'>[] }>({
       query: (body) => ({
         url: '/questions/bulk',
         method: 'POST',
@@ -291,7 +310,7 @@ export const api = createApi({
       query: (quizId) => `/participants/quiz/${quizId}`,
       providesTags: ['Participants'],
     }),
-    addParticipants: builder.mutation<{ success: boolean; data: any }, { quizId: string; emails: string[] }>({
+    addParticipants: builder.mutation<{ success: boolean; data: AddParticipantsResponse }, { quizId: string; emails: string[] }>({
       query: (body) => ({
         url: '/participants/bulk',
         method: 'POST',

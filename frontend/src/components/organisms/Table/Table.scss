@@ -1,0 +1,158 @@
+.table-organism-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  font-family: var(--font-family);
+}
+
+.table-container {
+  position: relative;
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--bg-surface);
+  overflow-x: auto;
+
+  /* Middle size padding adjustments */
+  &--middle {
+    .table-header-cell,
+    .table-body-cell {
+      padding: 12px 16px;
+    }
+  }
+
+  &--small {
+    .table-header-cell,
+    .table-body-cell {
+      padding: 8px 12px;
+    }
+  }
+
+  &--large {
+    .table-header-cell,
+    .table-body-cell {
+      padding: 16px 20px;
+    }
+  }
+}
+
+.custom-html-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+.table-header-cell {
+  background-color: var(--bg-surface-hover);
+  color: var(--text-main);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.table-body-row {
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.2s;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background-color: var(--bg-surface-hover);
+  }
+}
+
+.table-body-cell {
+  color: var(--text-main);
+  vertical-align: middle;
+}
+
+/* Loading Overlay inside Table */
+.table-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(var(--neutral-0), 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: 8px;
+}
+
+/* Empty states */
+.table-empty-cell {
+  text-align: center;
+  padding: 40px 20px !important;
+}
+
+.table-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+
+  .empty-state-icon {
+    color: var(--text-muted);
+    opacity: 0.5;
+  }
+
+  .empty-state-text {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+}
+
+/* Pagination container */
+.table-pagination-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+
+  .pagination-info {
+    font-weight: 500;
+  }
+
+  .pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .pagination-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-main);
+    transition: all 0.2s;
+
+    &:hover:not(:disabled) {
+      border-color: var(--primary-2);
+      color: var(--primary-2);
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.4;
+    }
+  }
+
+  .pagination-page-indicator {
+    font-weight: 600;
+    color: var(--text-main);
+  }
+}

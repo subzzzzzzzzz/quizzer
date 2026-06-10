@@ -1,13 +1,29 @@
 import React, { useState } from 'react';
 import { useGetQuizAnalyticsQuery, useGetAttemptReportQuery } from '../../services/api';
-import { Table, Input, Row, Col, Typography, Spin, Button, Drawer, Alert } from 'antd';
-import Icon from '../../components/ui/Icon/Icon';
-
-const { Title, Text } = Typography;
+import Table from '../../components/organisms/Table/Table';
+import type { ColumnType } from '../../components/organisms/Table/Table';
+import Input from '../../components/atoms/Input/Input';
+import Spinner from '../../components/atoms/Spinner/Spinner';
+import Button from '../../components/atoms/Button/Button';
+import Drawer from '../../components/organisms/Drawer/Drawer';
+import Alert from '../../components/atoms/Alert/Alert';
+import Icon from '../../components/atoms/Icon/Icon';
 
 interface AdminQuizResultsProps {
   quizId: string;
   onClose?: () => void;
+}
+
+interface ParticipantDetail {
+  userId: string;
+  name: string;
+  email: string;
+  status: 'NotStarted' | 'InProgress' | 'Submitted' | 'AutoSubmitted';
+  score: number;
+  timeTaken: number | null;
+  submittedAt: string | null;
+  attemptId: string | null;
+  seqId: string;
 }
 
 export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onClose }) => {
@@ -21,7 +37,7 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
   if (isLoading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '100px 0', backgroundColor: '#ffffff', borderRadius: '12px' }}>
-        <Spin size="large" tip="Loading analytics..." />
+        <Spinner size="large" tip="Loading analytics..." />
       </div>
     );
   }
@@ -32,6 +48,7 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
         {onClose && (
           <button
             onClick={onClose}
+            aria-label="close"
             style={{
               position: 'absolute',
               top: '20px',
@@ -49,7 +66,7 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
               zIndex: 10,
             }}
           >
-            <Icon name="close" size={14} />
+            <Icon name="x-close" size={14} />
           </button>
         )}
         <Alert
@@ -107,7 +124,7 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
   const sortedParticipants = [...(analytics.participants || [])].sort((a, b) => b.score - a.score);
   
   // Map sequence ID STU001, STU002...
-  const participantsWithIds = sortedParticipants.map((p, index) => ({
+  const participantsWithIds: ParticipantDetail[] = sortedParticipants.map((p, index) => ({
     ...p,
     seqId: `STU${String(index + 1).padStart(3, '0')}`
   }));
@@ -128,18 +145,17 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
       })
     : 'N/A';
 
-  const columns = [
+  const columns: ColumnType<ParticipantDetail>[] = [
     {
       title: 'STU. ID',
       dataIndex: 'seqId',
       key: 'seqId',
-      render: (text: string) => <span style={{ color: '#64748b', fontWeight: 600, fontSize: '11px' }}>{text}</span>,
-      width: 90,
+      render: (value) => <span style={{ color: '#64748b', fontWeight: 600, fontSize: '11px' }}>{String(value)}</span>,
     },
     {
       title: 'NAME',
       key: 'name',
-      render: (record: any) => {
+      render: (_, record) => {
         const initials = record.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
         const colorThemes = [
           { bg: '#e0f2fe', text: '#0369a1' },
@@ -176,7 +192,7 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
     {
       title: 'SCORE',
       key: 'score',
-      render: (record: any) => {
+      render: (_, record) => {
         if (record.status !== 'Submitted' && record.status !== 'AutoSubmitted') {
           return <span style={{ color: '#94a3b8', fontSize: '12px' }}>-</span>;
         }
@@ -184,9 +200,7 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
         let bg = '#fee2e2';
         let color = '#991b1b';
         if (pct >= 90) { bg = '#e2f9eb'; color = '#1e7e34'; }
-        else if (pct >= 80) { bg = '#e0f2fe'; color = '#0369a1'; }
         else if (pct >= 60) { bg = '#fff3cd'; color = '#856404'; }
-        else if (pct >= 50) { bg = '#fef3c7'; color = '#78350f'; }
 
         return (
           <span style={{
@@ -206,7 +220,7 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
     {
       title: '%',
       key: 'percentage',
-      render: (record: any) => {
+      render: (_, record) => {
         if (record.status !== 'Submitted' && record.status !== 'AutoSubmitted') {
           return <span style={{ color: '#94a3b8', fontSize: '12px' }}>-</span>;
         }
@@ -217,7 +231,7 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
     {
       title: 'ACTION',
       key: 'action',
-      render: (record: any) => (
+      render: (_, record) => (
         <Button
           size="small"
           disabled={!record.attemptId}
@@ -237,7 +251,6 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
           View Details
         </Button>
       ),
-      width: 110,
     }
   ];
 
@@ -245,9 +258,11 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
     { label: '>90%', count: b1, color: '#10b981', percent: p1 },
     { label: '80-90%', count: b2, color: '#3b82f6', percent: p2 },
     { label: '60-80%', count: b3, color: '#f97316', percent: p3 },
-    { label: '50-60%', count: b4, color: '#a855f7', percent: p4 },
+    { label: '50-60%', count: b4, color: '#f87171', percent: p4 },
     { label: '<50%', count: b5, color: '#ef4444', percent: p5 },
   ];
+
+  const formattedAvg = Number(analytics.metrics.avgScore).toFixed(1).replace('.0', '');
 
   return (
     <div style={{
@@ -261,6 +276,7 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
       {onClose && (
         <button
           onClick={onClose}
+          aria-label="close"
           style={{
             position: 'absolute',
             top: '20px',
@@ -281,7 +297,7 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
           onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#e2e8f0'; }}
           onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
         >
-          <Icon name="close" size={14} />
+          <Icon name="x-close" size={14} />
         </button>
       )}
 
@@ -291,41 +307,39 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
         </h2>
         <div style={{ fontSize: '11px', color: '#94a3b8', display: 'flex', gap: '8px', alignItems: 'center', fontWeight: 600 }}>
           <span>#Q{analytics.quiz.id.slice(-4).toUpperCase()}</span>
-          <span>•</span>
+          <span>-</span>
           <span>Completed {formattedDate}</span>
-          <span>•</span>
+          <span>-</span>
           <span>{analytics.metrics.assignedCount} participants</span>
         </div>
       </div>
 
       {/* 2. Metrics Cards */}
-      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '16px', marginBottom: '24px' }}>
         {[
-          { label: 'TOTAL STUDENTS', value: `${analytics.metrics.assignedCount}`, color: '#1f2937' },
-          { label: 'AVG SCORE', value: `${analytics.metrics.avgScore}/${analytics.quiz.maxScore}`, color: '#10b981' },
-          { label: 'HIGHEST', value: `${analytics.metrics.highestScore}/${analytics.quiz.maxScore}`, color: '#10b981' },
-          { label: 'LOWEST', value: `${analytics.metrics.lowestScore}/${analytics.quiz.maxScore}`, color: '#ef4444' },
+          { label: 'TOTAL STUDENTS', value: `${analytics.metrics.assignedCount}`, color: '#1e3a8a' },
+          { label: 'AVG SCORE', value: `${formattedAvg}/${analytics.quiz.maxScore}`, color: '#1e7e34' },
+          { label: 'HIGHEST', value: `${analytics.metrics.highestScore}/${analytics.quiz.maxScore}`, color: '#1e7e34' },
+          { label: 'LOWEST', value: `${analytics.metrics.lowestScore}/${analytics.quiz.maxScore}`, color: '#b91c1c' },
         ].map((item, idx) => (
-          <Col xs={12} sm={6} key={idx}>
-            <div style={{
-              backgroundColor: '#f4f4f3',
-              borderRadius: '10px',
-              padding: '12px 16px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '4px'
-            }}>
-              <span style={{ fontSize: '20px', fontWeight: 800, color: item.color, lineHeight: 1.1 }}>{item.value}</span>
-              <span style={{ fontSize: '9px', color: '#64748b', fontWeight: 700, letterSpacing: '0.5px' }}>{item.label}</span>
-            </div>
-          </Col>
+          <div key={idx} style={{
+            backgroundColor: '#f4f4f3',
+            borderRadius: '10px',
+            padding: '12px 16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px'
+          }}>
+            <span style={{ fontSize: '20px', fontWeight: 800, color: item.color, lineHeight: 1.1 }}>{item.value}</span>
+            <span style={{ fontSize: '9px', color: '#64748b', fontWeight: 700, letterSpacing: '0.5px' }}>{item.label}</span>
+          </div>
         ))}
-      </Row>
+      </div>
 
       {/* 3. Distribution & Students Table */}
-      <Row gutter={32}>
+      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '32px' }}>
         {/* Left distribution panel */}
-        <Col xs={24} md={8} style={{ borderRight: '1px solid #f1f5f9', paddingRight: '24px', marginBottom: '20px' }}>
+        <div style={{ borderRight: '1px solid #f1f5f9', paddingRight: '24px', marginBottom: '20px' }}>
           <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-main)', margin: '0 0 16px 0' }}>Score Distribution</h3>
           
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
@@ -360,7 +374,7 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
                   {p4 > 0 && (
                     <circle
                       cx="21" cy="21" r="15.915" fill="transparent"
-                      stroke="#a855f7" strokeWidth="4"
+                      stroke="#f87171" strokeWidth="4"
                       strokeDasharray={`${p4} ${100 - p4}`}
                       strokeDashoffset={offset4}
                     />
@@ -396,36 +410,34 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
               </div>
             ))}
           </div>
-        </Col>
+        </div>
 
         {/* Right student table panel */}
-        <Col xs={24} md={16} style={{ paddingLeft: '24px' }}>
+        <div style={{ paddingLeft: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>Students</h3>
             <Input
               placeholder="Search student name or ID..."
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              style={{ width: '220px', borderRadius: '8px', fontSize: '12px' }}
-              prefix={<Icon name="search" size={12} style={{ opacity: 0.5, marginRight: '4px' }} />}
+              style={{ width: '220px', fontSize: '12px' }}
+              prefix={<Icon name="search" size={12} style={{ opacity: 0.5 }} />}
             />
           </div>
 
           <Table
             dataSource={filteredParticipants}
-            columns={columns}
+            columns={columns as ColumnType<unknown>[]}
             rowKey="userId"
             pagination={{ pageSize: 5 }}
             size="small"
-            style={{ fontSize: '12px' }}
           />
-        </Col>
-      </Row>
+        </div>
+      </div>
 
       {/* Nested Drawer */}
       <Drawer
         title="Student Detailed Attempt Report"
-        placement="right"
         width={720}
         onClose={() => {
           setIsDrawerOpen(false);
@@ -445,7 +457,7 @@ const DetailedAttemptDrawer: React.FC<{ attemptId: string }> = ({ attemptId }) =
   const { data: reportResponse, isLoading, error } = useGetAttemptReportQuery(attemptId);
   const report = reportResponse?.data;
 
-  if (isLoading) return <Spin size="medium" style={{ display: 'block', margin: '40px auto' }} />;
+  if (isLoading) return <Spinner size="medium" tip="Loading report details..." style={{ display: 'block', margin: '40px auto' }} />;
   if (error || !report) return <Alert message="Error loading detailed report" type="error" />;
 
   const formatAnswers = (indices: number[], options: string[]) => {
@@ -463,25 +475,25 @@ const DetailedAttemptDrawer: React.FC<{ attemptId: string }> = ({ attemptId }) =
         borderRadius: '8px',
         border: '1px solid #f1f5f9'
       }}>
-        <Row gutter={[16, 16]}>
-          <Col span={12}>
-            <Text type="secondary" style={{ fontSize: '11px', fontWeight: 600 }}>Candidate</Text>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>Candidate</div>
             <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-main)', marginTop: '4px' }}>{report.candidate.name}</div>
             <div style={{ fontSize: '12px', color: '#64748b' }}>{report.candidate.email}</div>
-          </Col>
-          <Col span={12} style={{ textAlign: 'right' }}>
-            <Text type="secondary" style={{ fontSize: '11px', fontWeight: 600 }}>Final Grade</Text>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>Final Grade</div>
             <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--primary-2)', marginTop: '4px' }}>
               {report.attempt.score} / {report.summary.totalQuestions} ({report.summary.percentage}%)
             </div>
             <div style={{ fontSize: '11px', color: '#64748b' }}>
               Spent {Math.floor((report.attempt.timeTaken || 0) / 60)}m {(report.attempt.timeTaken || 0) % 60}s
             </div>
-          </Col>
-        </Row>
+          </div>
+        </div>
       </div>
 
-      <Title level={4} style={{ marginBottom: '16px', fontSize: '15px', fontWeight: 700 }}>Question by Question Review</Title>
+      <h4 style={{ marginBottom: '16px', fontSize: '15px', fontWeight: 700 }}>Question by Question Review</h4>
       
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {report.details.map((item, index) => (

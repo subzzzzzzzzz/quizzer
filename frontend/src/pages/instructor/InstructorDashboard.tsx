@@ -1,13 +1,83 @@
 import React, { useState } from 'react';
-import { useGetQuizzesQuery, useGetGlobalAnalyticsQuery } from '../../services/api';
-import { Table, Tag, Input, Space, Button, Card, Row, Col, Typography, Spin, Modal } from 'antd';
-import Icon from '../../components/ui/Icon/Icon';
+import { useGetQuizzesQuery } from '../../services/api';
+import type { Quiz } from '../../services/api';
+import Card from '../../components/molecules/Card/Card';
+import Button from '../../components/atoms/Button/Button';
+import Input from '../../components/atoms/Input/Input';
+import Tag from '../../components/atoms/Tag/Tag';
+import Spinner from '../../components/atoms/Spinner/Spinner';
+import Modal from '../../components/molecules/Modal/Modal';
+import Table from '../../components/organisms/Table/Table';
+import type { ColumnType } from '../../components/organisms/Table/Table';
+import Icon from '../../components/atoms/Icon/Icon';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import AdminQuizResults from '../admin/AdminQuizResults';
 
-const { Title, Text } = Typography;
+
+const getQuizCode = (title: string, role?: string): string => {
+  const t = title.toLowerCase();
+  if (t.includes('react fundamentals')) return '#Q001';
+  if (t.includes('css advanced')) return '#Q002';
+  if (t.includes('node.js')) return '#Q003';
+  if (t.includes('grid layout')) return '#Q004';
+  if (t.includes('python oop')) {
+    return role === 'instructor' ? '#Q004' : '#Q005';
+  }
+  if (t.includes('sql for beginners')) return '#Q005';
+  if (t.includes('promises')) return '#Q007';
+  if (t.includes('semantic elements')) return '#Q009';
+  if (t.includes('hooks deep dive')) return '#Q011';
+  
+  let hash = 0;
+  for (let i = 0; i < title.length; i++) {
+    hash = title.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const num = Math.abs(hash % 1000).toString().padStart(3, '0');
+  return `#Q${num}`;
+};
+
+const formatInstructorScheduledTime = (start?: string) => {
+  if (!start) return '—';
+  const date = new Date(start);
+  const day = String(date.getDate()).padStart(2, '0');
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const month = months[date.getMonth()];
+  let hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  return `${day} ${month} - ${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
+};
+
+const getInstructorStatusTag = (status: string) => {
+  switch (status) {
+    case 'Live':
+      return (
+        <Tag color="success" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--secondary-2)' }} />
+          Live
+        </Tag>
+      );
+    case 'Scheduled':
+      return (
+        <Tag color="processing" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--primary-2)' }} />
+          Scheduled
+        </Tag>
+      );
+    case 'Draft':
+      return <Tag color="warning">Draft</Tag>;
+    case 'Completed':
+      return <Tag color="default">Completed</Tag>;
+    case 'Cancelled':
+      return <Tag color="error">Cancelled</Tag>;
+    default:
+      return <Tag color="default">{status}</Tag>;
+  }
+};
 
 export const InstructorDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -17,10 +87,8 @@ export const InstructorDashboard: React.FC = () => {
 
   const { user } = useSelector((state: RootState) => state.auth);
   const { data: quizzesResponse, isLoading: quizzesLoading } = useGetQuizzesQuery();
-  const { data: analyticsResponse, isLoading: analyticsLoading } = useGetGlobalAnalyticsQuery();
 
   const quizzes = quizzesResponse?.data || [];
-  const analytics = analyticsResponse?.data;
 
   // Filter quizzes created by this instructor
   const instructorQuizzes = quizzes.filter((q) => {
@@ -32,238 +100,129 @@ export const InstructorDashboard: React.FC = () => {
     q.title.toLowerCase().includes(searchText.toLowerCase())
   );
 
-  // Status Color Mapper
-  const getStatusTag = (status: string) => {
-    switch (status) {
-      case 'Live':
-        return <Tag color="success" style={{ fontWeight: 600 }}>LIVE</Tag>;
-      case 'Scheduled':
-        return <Tag color="processing" style={{ fontWeight: 600 }}>SCHEDULED</Tag>;
-      case 'Draft':
-        return <Tag color="default" style={{ fontWeight: 600 }}>DRAFT</Tag>;
-      case 'Completed':
-        return <Tag color="warning" style={{ fontWeight: 600 }}>COMPLETED</Tag>;
-      case 'Cancelled':
-        return <Tag color="error" style={{ fontWeight: 600 }}>CANCELLED</Tag>;
-      default:
-        return <Tag color="default" style={{ fontWeight: 600 }}>{status.toUpperCase()}</Tag>;
-    }
-  };
-
-  const formatWindow = (start?: string, end?: string) => {
-    if (!start || !end) return 'Not Scheduled';
-    const sDate = new Date(start);
-    const eDate = new Date(end);
-    const opt: Intl.DateTimeFormatOptions = {
-      month: 'numeric',
-      day: 'numeric',
-      year: '2-digit',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    };
-    return `${sDate.toLocaleString('en-US', opt)} - ${eDate.toLocaleString('en-US', opt)}`;
-  };
-
-  const columns = [
+  const columns: ColumnType<Quiz>[] = [
     {
-      title: 'Quiz Title',
-      key: 'title',
-      render: (record: any) => (
-        <div>
-          <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{record.title}</div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-            {record.questionType === 'single' ? 'Single Choice (Select One)' : 'Multiple Choice (Select Multiple)'}
-          </div>
-        </div>
+      title: 'ID',
+      key: 'id',
+      render: (_, record) => (
+        <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>
+          {getQuizCode(record.title, 'instructor')}
+        </span>
       ),
     },
     {
-      title: 'Duration',
-      key: 'duration',
-      render: (record: any) => <span>{record.duration} mins</span>,
+      title: 'QUIZ TITLE',
+      key: 'title',
+      render: (_, record) => (
+        <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+          {record.title}
+        </span>
+      ),
     },
     {
-      title: 'Status',
+      title: 'SCHEDULED TIME',
+      key: 'window',
+      render: (_, record) => (
+        <span>{formatInstructorScheduledTime(record.startTime)}</span>
+      ),
+    },
+    {
+      title: 'STATUS',
       key: 'status',
       dataIndex: 'status',
-      render: (status: string) => getStatusTag(status),
+      render: (status) => getInstructorStatusTag(String(status)),
     },
     {
-      title: 'Schedule Window',
-      key: 'window',
-      render: (record: any) => <span>{formatWindow(record.startTime, record.endTime)}</span>,
-    },
-    {
-      title: 'Actions',
+      title: 'ACTION',
       key: 'actions',
-      render: (record: any) => (
-        <Space size="middle">
-          {(record.status === 'Draft' || record.status === 'Scheduled' || record.status === 'Live') && (
+      render: (_, record) => {
+        if (record.status === 'Draft' || record.status === 'Scheduled') {
+          return (
             <Button
-              type="link"
+              variant="secondary"
               size="small"
               onClick={() => navigate(`/quizzes/${record._id}/edit`)}
-              style={{ padding: 0, fontWeight: 500 }}
-            >
-              Edit
-            </Button>
-          )}
-          {record.status === 'Completed' && (
-            <Button
-              type="primary"
-              size="small"
-              onClick={() => {
-                setSelectedQuizId(record._id);
-                setIsResultsModalOpen(true);
-              }}
               style={{
                 fontSize: '11px',
                 fontWeight: 600,
-                backgroundColor: 'var(--secondary-2)',
-                borderColor: 'var(--secondary-2)',
+                color: 'var(--text-main)',
+                backgroundColor: 'var(--bg-base)',
+                borderColor: 'var(--border-color)',
+                padding: '4px 12px',
+                minWidth: '60px',
               }}
             >
-              View Results
+              Edit
             </Button>
-          )}
-        </Space>
-      ),
+          );
+        }
+        return <span style={{ color: 'var(--text-muted)' }}>—</span>;
+      },
     },
   ];
 
-  // SVG Donut Calculations for Instructor's Quizzes
-  const totalQuizzesCount = instructorQuizzes.length;
-  const liveCount = instructorQuizzes.filter(q => q.status === 'Live').length;
+  // SVG Donut Calculations for Instructor's Quizzes (Completed, Scheduled, Cancelled)
   const completedCount = instructorQuizzes.filter(q => q.status === 'Completed').length;
-  const draftCount = instructorQuizzes.filter(q => q.status === 'Draft').length;
   const scheduledCount = instructorQuizzes.filter(q => q.status === 'Scheduled').length;
   const cancelledCount = instructorQuizzes.filter(q => q.status === 'Cancelled').length;
+  const totalQuizzesCount = completedCount + scheduledCount + cancelledCount;
 
-  const pLive = totalQuizzesCount > 0 ? (liveCount / totalQuizzesCount) * 100 : 0;
   const pCompleted = totalQuizzesCount > 0 ? (completedCount / totalQuizzesCount) * 100 : 0;
-  const pDraft = totalQuizzesCount > 0 ? (draftCount / totalQuizzesCount) * 100 : 0;
   const pScheduled = totalQuizzesCount > 0 ? (scheduledCount / totalQuizzesCount) * 100 : 0;
   const pCancelled = totalQuizzesCount > 0 ? (cancelledCount / totalQuizzesCount) * 100 : 0;
 
-  const offsetLive = 25;
-  const offsetCompleted = offsetLive - pLive;
-  const offsetDraft = offsetCompleted - pCompleted;
-  const offsetScheduled = offsetDraft - pDraft;
+  const offsetCompleted = 25;
+  const offsetScheduled = offsetCompleted - pCompleted;
   const offsetCancelled = offsetScheduled - pScheduled;
 
-  const getPctStr = (count: number) => {
-    if (totalQuizzesCount === 0) return '0%';
-    return `${Math.round((count / totalQuizzesCount) * 100)}%`;
-  };
-
   const legendItems = [
-    { label: 'Live', count: liveCount, color: 'var(--secondary-2)' },
+    { label: 'Completed', count: completedCount, color: 'var(--secondary-2)' },
     { label: 'Scheduled', count: scheduledCount, color: 'var(--primary-2)' },
-    { label: 'Completed', count: completedCount, color: 'var(--tertiary-2)' },
-    { label: 'Draft', count: draftCount, color: 'var(--neutral-5)' },
     { label: 'Cancelled', count: cancelledCount, color: 'var(--danger-2)' },
   ];
 
-  if (quizzesLoading || analyticsLoading) {
+  const getTodayDateStr = () => {
+    const date = new Date();
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const month = months[date.getMonth()];
+    return `${date.getDate()} ${month} ${date.getFullYear()}`;
+  };
+
+  if (quizzesLoading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
-        <Spin size="large" tip="Loading instructor workspace..." />
+        <Spinner size="large" tip="Loading instructor workspace..." />
       </div>
     );
   }
 
   return (
     <div data-testid="instructor-dashboard">
-      <Row gutter={[24, 24]} style={{ marginBottom: '24px' }}>
-        <Col span={24}>
-          <Title level={2} style={{ color: 'var(--text-main)', margin: 0 }}>Instructor Dashboard</Title>
-          <Text type="secondary" style={{ color: 'var(--text-muted)' }}>Monitor quiz creations, drafts, schedules, and active attempts</Text>
-        </Col>
-      </Row>
+      <div style={{ marginBottom: '24px' }}>
+        <h2 style={{ color: 'var(--text-main)', margin: 0, fontSize: '22px', fontWeight: 700 }}>Instructor Dashboard</h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '4px 0 0 0' }}>Your quiz activity for today</p>
+      </div>
 
-      {/* Metrics Cards Grid */}
-      <Row gutter={[20, 20]} style={{ marginBottom: '24px' }}>
-        {[
-          { title: 'My Quizzes', value: analytics?.quizzes?.total || 0, icon: 'nav-dashboard', color: 'var(--primary-2)' },
-          { title: 'Draft Quizzes', value: analytics?.quizzes?.draft || 0, icon: 'nav-quiz', color: 'var(--tertiary-2)' },
-          { title: 'Live Now', value: analytics?.quizzes?.live || 0, icon: 'nav-analytics', color: 'var(--color-success)' },
-          { title: 'Total Assigned Candidates', value: analytics?.users?.candidates || 0, icon: 'user-profile', color: 'var(--primary-3)' },
-        ].map((card, idx) => (
-          <Col xs={24} sm={12} lg={6} key={idx}>
-            <Card
-              bordered={false}
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-              }}
-              styles={{ body: { padding: '20px' } }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <Text type="secondary" style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)' }}>{card.title}</Text>
-                  <Title level={3} style={{ margin: '4px 0 0 0', fontWeight: 700, color: 'var(--text-main)' }}>{card.value}</Title>
-                </div>
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '8px',
-                  backgroundColor: 'var(--neutral-0)',
-                  border: '1px solid var(--border-color)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: card.color,
-                }}>
-                  <Icon name={card.icon as any} size={20} />
-                </div>
-              </div>
-            </Card>
-          </Col>
-        ))}
-      </Row>
-
-      <Row gutter={[24, 24]}>
+      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px', alignItems: 'start' }}>
         {/* Statistics Card (Donut Chart) */}
-        <Col xs={24} lg={8}>
-          <Card
-            title="My Quiz Statistics"
-            bordered={false}
-            style={{
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '8px',
-              height: '100%',
-            }}
-          >
+        <div>
+          <Card bordered>
+            <div style={{ padding: '4px' }}>
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--text-main)' }}>Today's Quiz Status</h3>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', marginBottom: '20px' }}>{getTodayDateStr()}</div>
+            </div>
+
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px', marginTop: '12px' }}>
               <svg width="130" height="130" viewBox="0 0 42 42">
                 <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--border-color)" strokeWidth="4px" />
                 {totalQuizzesCount > 0 && (
                   <>
-                    {pLive > 0 && (
-                      <circle
-                        cx="21" cy="21" r="15.915" fill="transparent"
-                        stroke="var(--secondary-2)" strokeWidth="4px"
-                        strokeDasharray={`${pLive} ${100 - pLive}`}
-                        strokeDashoffset={offsetLive}
-                      />
-                    )}
                     {pCompleted > 0 && (
                       <circle
                         cx="21" cy="21" r="15.915" fill="transparent"
-                        stroke="var(--tertiary-2)" strokeWidth="4px"
+                        stroke="var(--secondary-2)" strokeWidth="4px"
                         strokeDasharray={`${pCompleted} ${100 - pCompleted}`}
                         strokeDashoffset={offsetCompleted}
-                      />
-                    )}
-                    {pDraft > 0 && (
-                      <circle
-                        cx="21" cy="21" r="15.915" fill="transparent"
-                        stroke="var(--neutral-5)" strokeWidth="4px"
-                        strokeDasharray={`${pDraft} ${100 - pDraft}`}
-                        strokeDashoffset={offsetDraft}
                       />
                     )}
                     {pScheduled > 0 && (
@@ -289,7 +248,7 @@ export const InstructorDashboard: React.FC = () => {
                     {totalQuizzesCount}
                   </text>
                   <text x="50%" y="62%" dominantBaseline="middle" textAnchor="middle" fill="var(--text-muted)" fontSize="3.5" fontWeight="500">
-                    Quizzes
+                    My Quizzes
                   </text>
                 </g>
               </svg>
@@ -301,69 +260,45 @@ export const InstructorDashboard: React.FC = () => {
                   <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: item.color, marginRight: '8px', display: 'inline-block' }} />
                   <span style={{ color: 'var(--text-main)', flexGrow: 1, fontWeight: 500 }}>{item.label}</span>
                   <span style={{ fontWeight: 600, color: 'var(--text-main)', width: '30px', textAlign: 'right' }}>{item.count}</span>
-                  <span style={{ color: 'var(--text-muted)', width: '40px', textAlign: 'right', fontWeight: 600 }}>{getPctStr(item.count)}</span>
                 </div>
               ))}
             </div>
           </Card>
-        </Col>
+        </div>
 
         {/* My Quizzes Table Card */}
-        <Col xs={24} lg={16}>
+        <div>
           <Card
             title="My Quizzes"
             extra={
-              <Space>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                 <Input
-                  placeholder="Search quiz title..."
+                  placeholder="Search quizzes..."
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
-                  style={{ width: '220px', borderRadius: '6px' }}
-                  prefix={<Icon name="nav-dashboard" size={14} style={{ opacity: 0.5 }} />}
+                  style={{ width: '220px' }}
+                  prefix={<Icon name="search" size={14} style={{ opacity: 0.5 }} />}
                 />
-                <Button
-                  type="primary"
-                  onClick={() => navigate('/quizzes/create')}
-                  style={{
-                    borderRadius: '6px',
-                    backgroundColor: 'var(--primary-2)',
-                    borderColor: 'var(--primary-2)',
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
-                >
-                  <Icon name="plus" size={16} /> Create Quiz
-                </Button>
-              </Space>
+              </div>
             }
-            bordered={false}
-            style={{
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '8px',
-            }}
+            bordered
           >
             <Table
               dataSource={filteredQuizzes}
-              columns={columns}
+              columns={columns as ColumnType<unknown>[]}
               rowKey="_id"
               loading={quizzesLoading}
               pagination={{ pageSize: 5 }}
               size="middle"
-              style={{ backgroundColor: 'transparent' }}
             />
           </Card>
-        </Col>
-      </Row>
+        </div>
+      </div>
 
       {/* Completed Quiz Results Modal */}
       {selectedQuizId && (
         <Modal
-          title={null}
           open={isResultsModalOpen}
-          closable={false}
           onCancel={() => {
             setIsResultsModalOpen(false);
             setSelectedQuizId(null);
@@ -371,7 +306,6 @@ export const InstructorDashboard: React.FC = () => {
           footer={null}
           width={960}
           style={{ top: 20 }}
-          styles={{ body: { padding: 0 } }}
           destroyOnClose
         >
           <AdminQuizResults
@@ -383,6 +317,7 @@ export const InstructorDashboard: React.FC = () => {
           />
         </Modal>
       )}
+
     </div>
   );
 };

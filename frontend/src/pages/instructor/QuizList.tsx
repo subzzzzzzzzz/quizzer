@@ -1,20 +1,58 @@
 import React, { useState } from 'react';
-import { useGetQuizzesQuery, useCancelQuizMutation } from '../../services/api';
-import { Table, Tag, Input, Space, Button, Card, Row, Col, Typography, message, Modal, Checkbox, Alert } from 'antd';
-import Icon from '../../components/ui/Icon/Icon';
+import { useGetQuizzesQuery, useCancelQuizMutation, useUpdateQuizMutation } from '../../services/api';
+import type { Quiz } from '../../services/api';
+import Card from '../../components/molecules/Card/Card';
+import Input from '../../components/atoms/Input/Input';
+import Button from '../../components/atoms/Button/Button';
+import Tag from '../../components/atoms/Tag/Tag';
+import Modal from '../../components/molecules/Modal/Modal';
+import Checkbox from '../../components/atoms/Checkbox/Checkbox';
+import Alert from '../../components/atoms/Alert/Alert';
+import Table from '../../components/organisms/Table/Table';
+import type { ColumnType } from '../../components/organisms/Table/Table';
+import Icon from '../../components/atoms/Icon/Icon';
 import { useNavigate } from 'react-router-dom';
 import AdminQuizResults from '../admin/AdminQuizResults';
+import message from '../../utils/message';
+import FormField from '../../components/molecules/FormField/FormField';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../store';
 
-const { Title, Text } = Typography;
-[]
 export const QuizList: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useSelector((state: RootState) => state.auth);
   const [searchText, setSearchText] = useState('');
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [quizToCancel, setQuizToCancel] = useState<string | null>(null);
   const [consentChecked, setConsentChecked] = useState(false);
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
   const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
+  const [quickScheduleQuiz, setQuickScheduleQuiz] = useState<Quiz | null>(null);
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [updateQuiz, { isLoading: isUpdatingQuiz }] = useUpdateQuizMutation();
+
+  const openQuickSchedule = (quiz: Quiz) => {
+    setQuickScheduleQuiz(quiz);
+    setStartTime(quiz.startTime ? quiz.startTime.substring(0, 16) : '');
+    setEndTime(quiz.endTime ? quiz.endTime.substring(0, 16) : '');
+  };
+
+  const handleQuickScheduleSave = async () => {
+    if (!quickScheduleQuiz) return;
+    try {
+      await updateQuiz({
+        id: quickScheduleQuiz._id,
+        body: { startTime, endTime }
+      }).unwrap();
+      message.success('Schedule updated successfully');
+      setQuickScheduleQuiz(null);
+      refetch();
+    } catch (err: unknown) {
+      const errPayload = err as { data?: { message?: string } };
+      message.error(errPayload.data?.message || 'Failed to update schedule');
+    }
+  };
 
   const { data: quizzesResponse, isLoading, refetch } = useGetQuizzesQuery();
   const [cancelQuiz, { isLoading: isCancelling }] = useCancelQuizMutation();
@@ -35,8 +73,9 @@ export const QuizList: React.FC = () => {
       setCancelModalVisible(false);
       setQuizToCancel(null);
       refetch();
-    } catch (err: any) {
-      message.error(err.data?.message || 'Failed to cancel quiz');
+    } catch (err: unknown) {
+      const errPayload = err as { data?: { message?: string } };
+      message.error(errPayload.data?.message || 'Failed to cancel quiz');
     }
   };
 
@@ -47,98 +86,126 @@ export const QuizList: React.FC = () => {
   const getStatusTag = (status: string) => {
     switch (status) {
       case 'Live':
-        return <Tag color="success" style={{ fontWeight: 600 }}>LIVE</Tag>;
+        return <Tag color="success">LIVE</Tag>;
       case 'Scheduled':
-        return <Tag color="processing" style={{ fontWeight: 600 }}>SCHEDULED</Tag>;
+        return <Tag color="processing">SCHEDULED</Tag>;
       case 'Draft':
-        return <Tag color="default" style={{ fontWeight: 600 }}>DRAFT</Tag>;
+        return <Tag color="default">DRAFT</Tag>;
       case 'Cancelled':
-        return <Tag color="error" style={{ fontWeight: 600 }}>CANCELLED</Tag>;
+        return <Tag color="error">CANCELLED</Tag>;
       case 'Completed':
-        return <Tag color="warning" style={{ color: 'var(--tertiary-3)', backgroundColor: 'var(--tertiary-0)', borderColor: 'var(--tertiary-1)', fontWeight: 600 }}>COMPLETED</Tag>;
+        return <Tag color="warning">COMPLETED</Tag>;
       default:
-        return <Tag>{status.toUpperCase()}</Tag>;
+        return <Tag color="default">{status.toUpperCase()}</Tag>;
     }
   };
 
-  const columns = [
+  const columns: ColumnType<Quiz>[] = [
     {
       title: 'Quiz Title',
-      dataIndex: 'title',
       key: 'title',
-      render: (text: string, record: any) => (
+      render: (_, record) => (
         <div>
-          <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{text}</div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{record.questionType === 'multi' ? 'Multiple Choice (Select All)' : 'Single Choice (Select One)'}</div>
+          <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{record.title}</div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+            {record.questionType === 'multi' ? 'Multiple Choice (Select All)' : 'Single Choice (Select One)'}
+          </div>
         </div>
       ),
     },
     {
       title: 'Status',
-      dataIndex: 'status',
       key: 'status',
-      render: (status: string) => getStatusTag(status),
+      dataIndex: 'status',
+      render: (status) => getStatusTag(String(status)),
     },
     {
       title: 'Questions Ready',
       key: 'questionsReady',
-      render: (record: any) => {
-        const count = (record as any).questionCount || 0;
+      render: (_, record) => {
+        const count = record.questionCount || 0;
         return (
-          <Space>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ color: count > 0 ? 'var(--color-success)' : 'var(--color-error)', fontWeight: 700 }}>
               {count > 0 ? '✓' : '✗'}
             </span>
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>({count} questions)</span>
-          </Space>
+          </div>
         );
       },
     },
     {
       title: 'Participants Ready',
       key: 'participantsReady',
-      render: (record: any) => {
-        const count = (record as any).participantCount || 0;
+      render: (_, record) => {
+        const count = record.participantCount || 0;
         return (
-          <Space>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ color: count > 0 ? 'var(--color-success)' : 'var(--color-error)', fontWeight: 700 }}>
               {count > 0 ? '✓' : '✗'}
             </span>
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>({count} candidates)</span>
-          </Space>
+          </div>
         );
       },
     },
     {
       title: 'Schedule Window',
       key: 'schedule',
-      render: (record: any) => (
-        <span style={{ fontSize: '12px' }}>
-          {record.startTime ? (
-            <>
-              {new Date(record.startTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
-              <br />
-              {new Date(record.endTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
-            </>
-          ) : (
-            'Not Scheduled'
-          )}
-        </span>
-      ),
+      render: (_, record) => {
+        const canEditSchedule = record.status === 'Draft' || record.status === 'Scheduled';
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '12px' }}>
+              {record.startTime && record.endTime ? (
+                <>
+                  {new Date(record.startTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                  <br />
+                  {new Date(record.endTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                </>
+              ) : (
+                'Not Scheduled'
+              )}
+            </span>
+            {canEditSchedule && (
+              <button
+                type="button"
+                onClick={() => openQuickSchedule(record)}
+                style={{
+                  border: 'none',
+                  background: 'none',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  color: 'var(--primary-2)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  borderRadius: '4px',
+                  transition: 'background-color 0.2s',
+                }}
+                title="Quick Schedule"
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--neutral-2)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+              >
+                <Icon name="calendar" size={14} />
+              </button>
+            )}
+          </div>
+        );
+      },
     },
     {
       title: 'Actions',
       key: 'actions',
-      render: (record: any) => {
+      render: (_, record) => {
         const isDraft = record.status === 'Draft';
         const isScheduled = record.status === 'Scheduled';
         const isLive = record.status === 'Live';
         const isCompleted = record.status === 'Completed';
 
         return (
-          <Space>
+          <div style={{ display: 'flex', gap: '8px' }}>
             <Button
-              type="default"
+              variant="secondary"
               size="small"
               onClick={() => navigate(`/quizzes/${record._id}/edit`)}
               disabled={isCompleted || record.status === 'Cancelled'}
@@ -149,11 +216,10 @@ export const QuizList: React.FC = () => {
 
             {(isScheduled || isLive) && (
               <Button
-                type="text"
-                danger
+                variant="text"
                 size="small"
                 onClick={() => handleCancelClick(record._id)}
-                style={{ fontSize: '11px', fontWeight: 600 }}
+                style={{ fontSize: '11px', fontWeight: 600, color: 'var(--danger-2)' }}
               >
                 Cancel
               </Button>
@@ -161,7 +227,7 @@ export const QuizList: React.FC = () => {
 
             {isCompleted && (
               <Button
-                type="primary"
+                variant="primary"
                 size="small"
                 onClick={() => {
                   setSelectedQuizId(record._id);
@@ -177,7 +243,7 @@ export const QuizList: React.FC = () => {
                 View Analytics
               </Button>
             )}
-          </Space>
+          </div>
         );
       },
     },
@@ -185,19 +251,16 @@ export const QuizList: React.FC = () => {
 
   return (
     <div>
-      <Row gutter={[24, 24]} style={{ marginBottom: '24px' }}>
-        <Col span={24} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <Title level={2} style={{ color: 'var(--text-main)', margin: 0 }}>Quizzes Editor</Title>
-            <Text type="secondary" style={{ color: 'var(--text-muted)' }}>Manage assessment drafts, configure questions, enroll students, and publish assessments.</Text>
-          </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <div>
+          <h2 style={{ color: 'var(--text-main)', margin: 0, fontSize: '22px', fontWeight: 700 }}>Quizzes Editor</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '4px 0 0 0' }}>Manage assessment drafts, configure questions, enroll students, and publish assessments.</p>
+        </div>
+        {user?.role !== 'instructor' && (
           <Button
-            type="primary"
+            variant="primary"
             onClick={() => navigate('/quizzes/create')}
             style={{
-              borderRadius: '6px',
-              backgroundColor: 'var(--primary-2)',
-              borderColor: 'var(--primary-2)',
               fontWeight: 600,
               display: 'flex',
               alignItems: 'center',
@@ -206,28 +269,23 @@ export const QuizList: React.FC = () => {
           >
             <Icon name="plus" size={16} /> Create Quiz
           </Button>
-        </Col>
-      </Row>
+        )}
+      </div>
 
-      <Card
-        bordered={false}
-        style={{
-          backgroundColor: 'var(--bg-surface)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '8px',
-        }}
-      >
-        <Input
-          placeholder="Search quiz title..."
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-          style={{ width: '320px', marginBottom: '16px', borderRadius: '6px' }}
-          prefix={<Icon name="nav-dashboard" size={14} style={{ opacity: 0.5 }} />}
-        />
+      <Card bordered>
+        <div style={{ marginBottom: '16px' }}>
+          <Input
+            placeholder="Search quiz title..."
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ width: '320px' }}
+            prefix={<Icon name="search" size={14} style={{ opacity: 0.5 }} />}
+          />
+        </div>
 
         <Table
           dataSource={filteredQuizzes}
-          columns={columns}
+          columns={columns as ColumnType<unknown>[]}
           rowKey="_id"
           loading={isLoading}
           pagination={{ pageSize: 10 }}
@@ -235,10 +293,10 @@ export const QuizList: React.FC = () => {
         />
       </Card>
 
-      {/* Cancel Confirmation Modal matching Page 21, 22, 51, 52 */}
+      {/* Cancel Confirmation Modal */}
       <Modal
         title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-error)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--danger-2)' }}>
             <Icon name="alert-triangle" size={20} />
             <span>Cancel Quiz Confirmation</span>
           </div>
@@ -246,13 +304,12 @@ export const QuizList: React.FC = () => {
         open={cancelModalVisible}
         onCancel={() => setCancelModalVisible(false)}
         footer={[
-          <Button key="back" onClick={() => setCancelModalVisible(false)}>
+          <Button key="back" variant="secondary" onClick={() => setCancelModalVisible(false)}>
             Close
           </Button>,
           <Button
             key="submit"
-            type="primary"
-            danger
+            variant="danger"
             loading={isCancelling}
             disabled={!consentChecked}
             onClick={handleCancelConfirm}
@@ -270,21 +327,20 @@ export const QuizList: React.FC = () => {
             showIcon
             style={{ marginBottom: '16px', borderRadius: '6px' }}
           />
-          <p style={{ marginBottom: '16px', lineHeight: '20px' }}>
+          <p style={{ marginBottom: '16px', lineHeight: '20px', color: 'var(--text-main)' }}>
             Cancelling this quiz will result in the following immediate consequences:
           </p>
-          <ul style={{ paddingLeft: '20px', marginBottom: '20px', lineHeight: '22px' }}>
-            <li>The status will be permanently updated to <strong style={{ color: 'var(--color-error)' }}>CANCELLED</strong>.</li>
+          <ul style={{ paddingLeft: '20px', marginBottom: '20px', lineHeight: '22px', color: 'var(--text-main)' }}>
+            <li>The status will be permanently updated to <strong style={{ color: 'var(--danger-2)' }}>CANCELLED</strong>.</li>
             <li>No candidate will be able to start or continue attempts.</li>
             <li>Any active attempts will be locked and cannot be submitted.</li>
           </ul>
 
           <Checkbox
             checked={consentChecked}
-            onChange={(e) => setConsentChecked(e.target.checked)}
-            style={{ display: 'flex', alignItems: 'flex-start' }}
+            onChange={(checked) => setConsentChecked(checked)}
           >
-            <span style={{ fontSize: '13px', lineHeight: '18px', display: 'block' }}>
+            <span style={{ fontSize: '13px', lineHeight: '18px', display: 'block', color: 'var(--text-main)' }}>
               I understand the consequences and confirm that I want to cancel this quiz permanently.
             </span>
           </Checkbox>
@@ -294,9 +350,7 @@ export const QuizList: React.FC = () => {
       {/* Quiz Analytics Modal Popup */}
       {selectedQuizId && (
         <Modal
-          title={null}
           open={isAnalyticsModalOpen}
-          closable={false}
           onCancel={() => {
             setIsAnalyticsModalOpen(false);
             setSelectedQuizId(null);
@@ -304,7 +358,6 @@ export const QuizList: React.FC = () => {
           footer={null}
           width={960}
           style={{ top: 20 }}
-          styles={{ body: { padding: 0 } }}
           destroyOnClose
         >
           <AdminQuizResults
@@ -314,6 +367,57 @@ export const QuizList: React.FC = () => {
               setSelectedQuizId(null);
             }}
           />
+        </Modal>
+      )}
+
+      {/* Quick Schedule Modal */}
+      {quickScheduleQuiz && (
+        <Modal
+          title={
+            <span style={{ fontWeight: 700, fontSize: '16px', color: 'var(--text-main)' }}>
+              Quick Schedule: {quickScheduleQuiz.title}
+            </span>
+          }
+          open={!!quickScheduleQuiz}
+          onCancel={() => setQuickScheduleQuiz(null)}
+          footer={[
+            <Button
+              key="cancel"
+              variant="secondary"
+              onClick={() => setQuickScheduleQuiz(null)}
+            >
+              Cancel
+            </Button>,
+            <Button
+              key="save"
+              variant="primary"
+              loading={isUpdatingQuiz}
+              onClick={handleQuickScheduleSave}
+            >
+              Save Schedule
+            </Button>
+          ]}
+          width={480}
+          destroyOnClose
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '12px 0' }}>
+            <FormField label="Start Time" required>
+              <Input
+                type="datetime-local"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                style={{ width: '100%' }}
+              />
+            </FormField>
+            <FormField label="End Time" required>
+              <Input
+                type="datetime-local"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                style={{ width: '100%' }}
+              />
+            </FormField>
+          </div>
         </Modal>
       )}
     </div>
