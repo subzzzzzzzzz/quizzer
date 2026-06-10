@@ -80,8 +80,9 @@ npm run seed
 
 Default credentials created by the seed script:
 * **Admin**: `admin@quizarena.com` / `Password123`
-* **Instructor**: `instructor@quizarena.com` / `Password123`
-* **Candidate**: `candidate@quizarena.com` / `Password123`
+* **Instructor**: `priya@quizarena.com` / `Password123`
+* **Candidate 1**: `sara@quizarena.com` / `Password123`
+* **Candidate 2**: `rohan@quizarena.com` / `Password123`
 
 ### Step 3: Run Development Servers
 Run the backend and frontend dev servers concurrently:
