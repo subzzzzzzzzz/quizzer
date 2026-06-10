@@ -22,8 +22,11 @@ export async function getQuizParticipants(
     }
 
     if (userRole === 'instructor' && quiz.instructorId.toString() !== userId?.toString()) {
-      next(new ForbiddenError('You do not have permission to view participants for this quiz'));
-      return;
+      const creator = await UserModel.findById(quiz.instructorId);
+      if (!creator || creator.role !== 'admin') {
+        next(new ForbiddenError('You do not have permission to view participants for this quiz'));
+        return;
+      }
     }
 
     const participants = await ParticipantModel.find({ quizId })
@@ -56,8 +59,11 @@ export async function addParticipants(
     }
 
     if (userRole === 'instructor' && quiz.instructorId.toString() !== userId?.toString()) {
-      next(new ForbiddenError('You do not have permission to manage participants for this quiz'));
-      return;
+      const creator = await UserModel.findById(quiz.instructorId);
+      if (!creator || creator.role !== 'admin') {
+        next(new ForbiddenError('You do not have permission to manage participants for this quiz'));
+        return;
+      }
     }
 
     if (quiz.status !== 'Draft') {
@@ -132,8 +138,11 @@ export async function removeParticipant(
     }
 
     if (userRole === 'instructor' && quiz.instructorId.toString() !== userId?.toString()) {
-      next(new ForbiddenError('You do not have permission to remove participants from this quiz'));
-      return;
+      const creator = await UserModel.findById(quiz.instructorId);
+      if (!creator || creator.role !== 'admin') {
+        next(new ForbiddenError('You do not have permission to remove participants from this quiz'));
+        return;
+      }
     }
 
     if (quiz.status !== 'Draft') {

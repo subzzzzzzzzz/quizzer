@@ -3,6 +3,7 @@ import AttemptModel from './attempt.model';
 import QuizModel from '../quizzes/quiz.model';
 import QuestionModel from '../questions/question.model';
 import ParticipantModel from '../participants/participant.model';
+import UserModel from '../users/user.model';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../../shared/errors';
 import { syncQuizStatuses } from '../quizzes/quiz.controller';
@@ -256,9 +257,12 @@ export async function getAttemptDetails(
 
     if (userRole === 'instructor') {
       const quiz = await QuizModel.findById(attempt.quizId);
-      if (quiz?.instructorId.toString() !== userId?.toString()) {
-        next(new ForbiddenError('You do not have permission to view attempts for this quiz'));
-        return;
+      if (quiz && quiz.instructorId.toString() !== userId?.toString()) {
+        const creator = await UserModel.findById(quiz.instructorId);
+        if (!creator || creator.role !== 'admin') {
+          next(new ForbiddenError('You do not have permission to view attempts for this quiz'));
+          return;
+        }
       }
     }
 

@@ -86,13 +86,18 @@ const getCandidateStatusTag = (quiz: Quiz) => {
   }
 };
 
-const formatTimeSpent = (attempt?: { timeTaken?: number } | null) => {
+export const formatTimeSpent = (attempt?: { timeTaken?: number } | null) => {
   if (!attempt || attempt.timeTaken === undefined || attempt.timeTaken === null) return '—';
   const t = attempt.timeTaken;
-  if (t > 120) {
-    return `${Math.round(t / 60)} min`;
+  if (t < 60) {
+    return `${t} sec`;
   }
-  return `${t} min`;
+  const mins = Math.floor(t / 60);
+  const secs = t % 60;
+  if (secs === 0) {
+    return `${mins} min`;
+  }
+  return `${mins} min ${secs} sec`;
 };
 
 export const CandidateDashboard: React.FC = () => {

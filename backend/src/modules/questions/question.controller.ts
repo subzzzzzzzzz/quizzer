@@ -2,6 +2,7 @@ import { Response, NextFunction } from 'express';
 import QuestionModel from './question.model';
 import QuizModel from '../quizzes/quiz.model';
 import ParticipantModel from '../participants/participant.model';
+import UserModel from '../users/user.model';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../../shared/errors';
 
@@ -22,8 +23,11 @@ export async function addQuestion(
     }
 
     if (userRole === 'instructor' && quiz.instructorId.toString() !== userId?.toString()) {
-      next(new ForbiddenError('You do not have permission to add questions to this quiz'));
-      return;
+      const creator = await UserModel.findById(quiz.instructorId);
+      if (!creator || creator.role !== 'admin') {
+        next(new ForbiddenError('You do not have permission to add questions to this quiz'));
+        return;
+      }
     }
 
     if (quiz.status !== 'Draft') {
@@ -71,8 +75,11 @@ export async function editQuestion(
     }
 
     if (userRole === 'instructor' && quiz.instructorId.toString() !== userId?.toString()) {
-      next(new ForbiddenError('You do not have permission to edit questions in this quiz'));
-      return;
+      const creator = await UserModel.findById(quiz.instructorId);
+      if (!creator || creator.role !== 'admin') {
+        next(new ForbiddenError('You do not have permission to edit questions in this quiz'));
+        return;
+      }
     }
 
     if (quiz.status !== 'Draft') {
@@ -118,8 +125,11 @@ export async function deleteQuestion(
     }
 
     if (userRole === 'instructor' && quiz.instructorId.toString() !== userId?.toString()) {
-      next(new ForbiddenError('You do not have permission to delete questions from this quiz'));
-      return;
+      const creator = await UserModel.findById(quiz.instructorId);
+      if (!creator || creator.role !== 'admin') {
+        next(new ForbiddenError('You do not have permission to delete questions from this quiz'));
+        return;
+      }
     }
 
     if (quiz.status !== 'Draft') {
@@ -156,8 +166,11 @@ export async function getQuestionsByQuizId(
 
     // Role-based logic
     if (userRole === 'instructor' && quiz.instructorId.toString() !== userId?.toString()) {
-      next(new ForbiddenError('You do not have permission to view questions for this quiz'));
-      return;
+      const creator = await UserModel.findById(quiz.instructorId);
+      if (!creator || creator.role !== 'admin') {
+        next(new ForbiddenError('You do not have permission to view questions for this quiz'));
+        return;
+      }
     }
 
     if (userRole === 'candidate') {
@@ -217,8 +230,11 @@ export async function bulkImportQuestions(
     }
 
     if (userRole === 'instructor' && quiz.instructorId.toString() !== userId?.toString()) {
-      next(new ForbiddenError('You do not have permission to import questions to this quiz'));
-      return;
+      const creator = await UserModel.findById(quiz.instructorId);
+      if (!creator || creator.role !== 'admin') {
+        next(new ForbiddenError('You do not have permission to import questions to this quiz'));
+        return;
+      }
     }
 
     if (quiz.status !== 'Draft') {

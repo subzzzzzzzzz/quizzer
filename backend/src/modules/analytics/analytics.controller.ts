@@ -34,9 +34,12 @@ export async function getAttemptReport(
     }
 
     const quiz = await QuizModel.findById(attempt.quizId);
-    if (userRole === 'instructor' && quiz?.instructorId.toString() !== userId?.toString()) {
-      next(new ForbiddenError('You do not have permission to view results for this quiz'));
-      return;
+    if (userRole === 'instructor' && quiz && quiz.instructorId.toString() !== userId?.toString()) {
+      const creator = await UserModel.findById(quiz.instructorId);
+      if (!creator || creator.role !== 'admin') {
+        next(new ForbiddenError('You do not have permission to view results for this quiz'));
+        return;
+      }
     }
 
     // Get all questions
@@ -117,8 +120,11 @@ export async function getQuizAnalytics(
 
     // Validate permission
     if (userRole === 'instructor' && quiz.instructorId.toString() !== userId?.toString()) {
-      next(new ForbiddenError('You do not have permission to access these analytics'));
-      return;
+      const creator = await UserModel.findById(quiz.instructorId);
+      if (!creator || creator.role !== 'admin') {
+        next(new ForbiddenError('You do not have permission to access these analytics'));
+        return;
+      }
     }
 
     const questions = await QuestionModel.find({ quizId });
@@ -220,9 +226,16 @@ export async function getGlobalAnalytics(
       return;
     }
 
-    let quizFilter = {};
+    let quizFilter: any = {};
     if (userRole === 'instructor') {
-      quizFilter = { instructorId: userId };
+      const admins = await UserModel.find({ role: 'admin' }).select('_id');
+      const adminIds = admins.map(a => a._id);
+      quizFilter = {
+        $or: [
+          { instructorId: userId },
+          { instructorId: { $in: adminIds } }
+        ]
+      };
     }
 
     // Counts
@@ -242,7 +255,7 @@ export async function getGlobalAnalytics(
       instructorsCount = await UserModel.countDocuments({ role: 'instructor' });
     } else {
       // For instructors: find distinct candidates assigned to their quizzes
-      const quizzes = await QuizModel.find({ instructorId: userId }).select('_id');
+      const quizzes = await QuizModel.find(quizFilter).select('_id');
       const quizIds = quizzes.map(q => q._id);
       const uniqueCandidates = await ParticipantModel.distinct('userId', { quizId: { $in: quizIds } });
       candidatesCount = uniqueCandidates.length;
@@ -253,7 +266,7 @@ export async function getGlobalAnalytics(
     if (userRole === 'admin') {
       totalAttempts = await AttemptModel.countDocuments();
     } else {
-      const quizzes = await QuizModel.find({ instructorId: userId }).select('_id');
+      const quizzes = await QuizModel.find(quizFilter).select('_id');
       const quizIds = quizzes.map(q => q._id);
       totalAttempts = await AttemptModel.countDocuments({ quizId: { $in: quizIds } });
     }

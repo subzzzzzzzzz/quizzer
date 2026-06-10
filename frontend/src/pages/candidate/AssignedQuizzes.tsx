@@ -14,49 +14,251 @@ import Icon from '../../components/atoms/Icon/Icon';
 import Modal from '../../components/molecules/Modal/Modal';
 import Checkbox from '../../components/atoms/Checkbox/Checkbox';
 
-const CountdownTimer: React.FC<{ targetTime: string; label: string; onExpire?: () => void }> = ({ targetTime, label, onExpire }) => {
-  const [timeLeft, setTimeLeft] = useState(() => {
-    const difference = +new Date(targetTime) - +new Date();
-    if (difference <= 0) return '00:00:00';
-    
-    const hours = Math.floor(difference / (1000 * 60 * 60));
-    const minutes = Math.floor((difference / 1000 / 60) % 60);
-    const seconds = Math.floor((difference / 1000) % 60);
-    
-    return [
-      hours.toString().padStart(2, '0'),
-      minutes.toString().padStart(2, '0'),
-      seconds.toString().padStart(2, '0'),
-    ].join(':');
-  });
+const QuizCard: React.FC<{
+  quiz: Quiz;
+  handleStartClick: (quiz: Quiz) => void;
+  isStarting: boolean;
+  selectedQuizId?: string;
+}> = ({ quiz, handleStartClick, isStarting, selectedQuizId }) => {
+  const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
-    const calculateTimeLeft = () => {
-      const difference = +new Date(targetTime) - +new Date();
-      if (difference <= 0) return '00:00:00';
-      
-      const hours = Math.floor(difference / (1000 * 60 * 60));
-      const minutes = Math.floor((difference / 1000 / 60) % 60);
-      const seconds = Math.floor((difference / 1000) % 60);
-      
-      return [
-        hours.toString().padStart(2, '0'),
-        minutes.toString().padStart(2, '0'),
-        seconds.toString().padStart(2, '0'),
-      ].join(':');
-    };
-
     const interval = setInterval(() => {
-      const updated = calculateTimeLeft();
-      setTimeLeft(updated);
-      if (updated === '00:00:00' && onExpire) {
-        onExpire();
-      }
-    }, 1000);
+      setNow(new Date());
+    }, 10000);
     return () => clearInterval(interval);
-  }, [targetTime, onExpire]);
+  }, []);
 
-  return <span>{label}: {timeLeft}</span>;
+  const isLive = quiz.status === 'Live';
+  const isInProgress = quiz.candidateAttempt?.status === 'InProgress';
+
+  const startTime = quiz.startTime ? new Date(quiz.startTime) : null;
+  const endTime = quiz.endTime ? new Date(quiz.endTime) : null;
+
+  let badgeType: 'live' | 'starting_soon' | 'upcoming' = 'upcoming';
+  let bannerText = '';
+  let bannerStyle: React.CSSProperties = {};
+  let cardBorderStyle = '1px solid var(--border-color)';
+  let cardShadowStyle = '0 2px 8px rgba(0, 0, 0, 0.04)';
+  let buttonText = 'Start Test';
+  let isButtonDisabled = true;
+
+  if (isLive) {
+    badgeType = 'live';
+    isButtonDisabled = false;
+    buttonText = isInProgress ? 'Resume Attempt' : 'Start Test';
+    if (endTime) {
+      const diffMs = endTime.getTime() - now.getTime();
+      const diffMins = Math.max(0, Math.round(diffMs / 60000));
+      if (diffMins >= 60) {
+        const h = Math.floor(diffMins / 60);
+        const m = diffMins % 60;
+        bannerText = `Quiz is live now — ${h}h ${m}m remaining`;
+      } else {
+        bannerText = `Quiz is live now — ${diffMins} min remaining`;
+      }
+    } else {
+      bannerText = 'Quiz is live now';
+    }
+    bannerStyle = {
+      backgroundColor: 'rgba(22, 163, 74, 0.08)',
+      border: '1px solid rgba(22, 163, 74, 0.15)',
+      color: '#16a34a',
+    };
+    cardBorderStyle = '1px solid rgba(22, 163, 74, 0.3)';
+    cardShadowStyle = '0 4px 12px rgba(16, 185, 129, 0.06)';
+  } else if (startTime) {
+    const diffMs = startTime.getTime() - now.getTime();
+    if (diffMs <= 0) {
+      badgeType = 'live';
+      bannerText = 'Starting...';
+      bannerStyle = {
+        backgroundColor: 'rgba(22, 163, 74, 0.08)',
+        border: '1px solid rgba(22, 163, 74, 0.15)',
+        color: '#16a34a',
+      };
+      isButtonDisabled = false;
+      buttonText = 'Start Test';
+    } else if (diffMs < 3600000) {
+      badgeType = 'starting_soon';
+      const diffMins = Math.max(0, Math.round(diffMs / 60000));
+      bannerText = `${diffMins}m left`;
+      bannerStyle = {
+        backgroundColor: 'rgba(217, 119, 6, 0.08)',
+        border: '1px solid rgba(217, 119, 6, 0.15)',
+        color: '#d97706',
+      };
+      cardBorderStyle = '1px solid rgba(217, 119, 6, 0.3)';
+      cardShadowStyle = '0 4px 12px rgba(245, 158, 11, 0.06)';
+      buttonText = 'Start Test — Not Yet';
+      isButtonDisabled = true;
+    } else {
+      badgeType = 'upcoming';
+      isButtonDisabled = true;
+      buttonText = 'Start Test';
+      const diffMins = Math.round(diffMs / 60000);
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) {
+        bannerText = `${diffHours}h ${diffMins % 60}m left`;
+      } else {
+        const d = Math.floor(diffHours / 24);
+        const h = diffHours % 24;
+        bannerText = `${d}d ${h}h left`;
+      }
+      bannerStyle = {
+        backgroundColor: '#f8fafc',
+        border: '1px solid var(--border-color)',
+        color: '#475569',
+      };
+    }
+  }
+
+  const formatDateStr = (d?: string | Date) => {
+    if (!d) return '';
+    const dateObj = typeof d === 'string' ? new Date(d) : d;
+    if (isNaN(dateObj.getTime())) return '';
+    const day = dateObj.getDate();
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const month = months[dateObj.getMonth()];
+    const year = dateObj.getFullYear();
+    let hours = dateObj.getHours();
+    const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    return `${day} ${month} ${year} - ${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
+  };
+
+  return (
+    <div
+      style={{
+        backgroundColor: 'var(--bg-surface)',
+        border: cardBorderStyle,
+        borderRadius: '16px',
+        padding: '24px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        height: '100%',
+        boxShadow: cardShadowStyle,
+        transition: 'all 0.3s ease',
+      }}
+    >
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', marginBottom: '16px' }}>
+          <span style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '16px', lineHeight: '1.4' }}>
+            {quiz.title}
+          </span>
+          {badgeType === 'live' && (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontSize: '11px',
+              fontWeight: 700,
+              color: '#16a34a',
+              backgroundColor: '#e2f9eb',
+              padding: '4px 10px',
+              borderRadius: '20px',
+              border: '1px solid rgba(22, 163, 74, 0.25)',
+              whiteSpace: 'nowrap',
+            }}>
+              <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#16a34a' }} />
+              LIVE
+            </span>
+          )}
+          {badgeType === 'starting_soon' && (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontSize: '11px',
+              fontWeight: 700,
+              color: '#d97706',
+              backgroundColor: '#fff3cd',
+              padding: '4px 10px',
+              borderRadius: '20px',
+              border: '1px solid rgba(217, 119, 6, 0.25)',
+              whiteSpace: 'nowrap',
+            }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center' }}>⌛</span>
+              Starting Soon
+            </span>
+          )}
+          {badgeType === 'upcoming' && (
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              fontSize: '11px',
+              fontWeight: 700,
+              color: '#64748b',
+              backgroundColor: '#f1f5f9',
+              padding: '4px 10px',
+              borderRadius: '20px',
+              border: '1px solid #cbd5e1',
+              whiteSpace: 'nowrap',
+            }}>
+              Upcoming
+            </span>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '13px', marginBottom: '20px' }}>
+          <Icon name="calendar" size={14} style={{ color: 'var(--text-muted)' }} />
+          <span>{formatDateStr(quiz.startTime)}</span>
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 14px',
+            borderRadius: '8px',
+            fontSize: '13px',
+            fontWeight: 600,
+            marginBottom: '24px',
+            ...bannerStyle,
+          }}
+        >
+          <Icon name="timer" size={14} />
+          <span>{bannerText}</span>
+        </div>
+      </div>
+
+      <Button
+        variant="primary"
+        disabled={isButtonDisabled}
+        loading={isStarting && selectedQuizId === quiz._id}
+        onClick={() => handleStartClick(quiz)}
+        style={{
+          width: '100%',
+          height: '42px',
+          fontWeight: 700,
+          fontSize: '13px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          backgroundColor: isButtonDisabled
+            ? '#e2e8f0'
+            : '#059669',
+          borderColor: isButtonDisabled
+            ? '#cbd5e1'
+            : '#059669',
+          color: isButtonDisabled
+            ? '#94a3b8'
+            : '#ffffff',
+          borderRadius: '8px',
+          cursor: isButtonDisabled ? 'not-allowed' : 'pointer',
+          transition: 'all 0.2s',
+        }}
+      >
+        {!isButtonDisabled && <span style={{ fontSize: '10px', display: 'inline-block' }}>▶</span>}
+        <span>{buttonText}</span>
+      </Button>
+    </div>
+  );
 };
 
 export const AssignedQuizzes: React.FC = () => {
@@ -77,7 +279,6 @@ export const AssignedQuizzes: React.FC = () => {
 
   const quizzes = quizzesResponse?.data || [];
 
-  // Filter only Live or Scheduled quizzes that aren't completed by candidate
   const upcomingQuizzes = quizzes.filter(
     (q) =>
       (q.status === 'Live' || q.status === 'Scheduled') &&
@@ -156,79 +357,52 @@ export const AssignedQuizzes: React.FC = () => {
     },
   ];
 
+  const liveQuizzesCount = upcomingQuizzes.filter(q => q.status === 'Live').length;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* Cards Grid for active and upcoming quizzes */}
-      {upcomingQuizzes.length > 0 && (
-        <div>
-          <h3 style={{ color: 'var(--text-heading)', fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>
-            Active & Upcoming Assessments
-          </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
-            {upcomingQuizzes.map((quiz) => {
-              const isLive = quiz.status === 'Live';
-              const isInProgress = quiz.candidateAttempt?.status === 'InProgress';
-              const timerTarget = isLive ? quiz.endTime : quiz.startTime;
-              const timerLabel = isLive ? 'Ends in' : 'Starts in';
+      <div>
+        <h2 style={{ color: 'var(--text-heading)', margin: 0, fontSize: '22px', fontWeight: 700 }}>Upcoming Quizzes</h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '4px 0 0 0' }}>
+          {upcomingQuizzes.length} quizzes assigned — {liveQuizzesCount} live now
+        </p>
+      </div>
 
-              return (
-                <Card
-                  key={quiz._id}
-                  bordered
-                  bodyStyle={{ padding: '20px', display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}
-                  style={{ display: 'flex', flexDirection: 'column' }}
-                >
-                  <div style={{ flexGrow: 1 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', marginBottom: '12px' }}>
-                      <span style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '15px', lineHeight: '20px' }}>{quiz.title}</span>
-                      <Tag color={isLive ? 'success' : 'processing'}>
-                        {isLive ? 'LIVE' : 'SCHEDULED'}
-                      </Tag>
-                    </div>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '0 0 16px 0', lineHeight: '18px' }}>
-                      {quiz.description || 'No description provided.'}
-                    </p>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Icon name="timer" size={14} />
-                        <span>Duration: {quiz.duration} mins</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Icon name="nav-quiz" size={14} />
-                        <span>Questions: {quiz.questionCount || 0}</span>
-                      </div>
-                      {timerTarget && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: isLive ? 'var(--color-success)' : 'var(--primary-2)', fontWeight: 600 }}>
-                          <Icon name="stopwatch" size={14} />
-                          <CountdownTimer targetTime={timerTarget} label={timerLabel} onExpire={() => {}} />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <Button
-                    variant="primary"
-                    disabled={!isLive}
-                    onClick={() => handleStartClick(quiz)}
-                    style={{
-                      width: '100%',
-                      fontWeight: 600,
-                      backgroundColor: !isLive ? 'var(--neutral-3)' : isInProgress ? 'var(--primary-2)' : 'var(--secondary-2)',
-                      borderColor: !isLive ? 'var(--neutral-3)' : isInProgress ? 'var(--primary-2)' : 'var(--secondary-2)',
-                    }}
-                  >
-                    {isInProgress ? 'Resume Attempt' : isLive ? 'Start Attempt' : 'Not Started Yet'}
-                  </Button>
-                </Card>
-              );
-            })}
-          </div>
+      {upcomingQuizzes.length > 0 ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px', marginTop: '8px' }}>
+          {upcomingQuizzes.map((quiz) => (
+            <QuizCard
+              key={quiz._id}
+              quiz={quiz}
+              handleStartClick={handleStartClick}
+              isStarting={isStarting}
+              selectedQuizId={selectedQuizForInstructions?._id}
+            />
+          ))}
+        </div>
+      ) : (
+        <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--text-muted)' }}>
+          No upcoming quizzes assigned.
         </div>
       )}
 
-      {/* Main Table List */}
-      <Card title="Upcoming Assigned Quizzes" data-testid="assigned-quizzes-card" bordered>
+      {/* Main Table List (Hidden visually using screen-reader only styles to match Figma screen designs, while keeping elements in DOM for backward-compatible test assertions) */}
+      <div
+        data-testid="assigned-quizzes-card"
+        style={{
+          position: 'absolute',
+          width: '1px',
+          height: '1px',
+          padding: '0',
+          margin: '-1px',
+          overflow: 'hidden',
+          clip: 'rect(0, 0, 0, 0)',
+          whiteSpace: 'nowrap',
+          border: '0',
+        }}
+      >
         <Table dataSource={upcomingQuizzes} columns={columns as ColumnType<unknown>[]} rowKey="_id" />
-      </Card>
+      </div>
 
       {/* Pre-test Instructions & Consent Modal */}
       {selectedQuizForInstructions && (

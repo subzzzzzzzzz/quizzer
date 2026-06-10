@@ -4,6 +4,7 @@ import QuizModel, { IQuiz } from './quiz.model';
 import QuestionModel from '../questions/question.model';
 import ParticipantModel from '../participants/participant.model';
 import AttemptModel from '../attempts/attempt.model';
+import UserModel from '../users/user.model';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../../shared/errors';
 
@@ -98,8 +99,13 @@ export async function getQuizzes(
     let filter: any = {};
 
     if (userRole === 'instructor') {
-      // Instructors see quizzes they created
-      filter.instructorId = userId;
+      // Instructors see quizzes they created OR quizzes created by admin users
+      const admins = await UserModel.find({ role: 'admin' }).select('_id');
+      const adminIds = admins.map((a) => a._id);
+      filter.$or = [
+        { instructorId: userId },
+        { instructorId: { $in: adminIds } }
+      ];
     } else if (userRole === 'candidate') {
       // Candidates see quizzes they are assigned to
       const assignments = await ParticipantModel.find({ userId }).select('quizId');
@@ -111,7 +117,7 @@ export async function getQuizzes(
     // Admins see all quizzes, so filter remains empty {}
 
     const quizzes = await QuizModel.find(filter)
-      .populate('instructorId', 'name email')
+      .populate('instructorId', 'name email role')
       .sort({ createdAt: -1 });
 
     const data = [];
@@ -160,7 +166,7 @@ export async function getQuizById(
     const userId = req.user?._id;
     const userRole = req.user?.role;
 
-    const quiz = await QuizModel.findById(id).populate('instructorId', 'name email');
+    const quiz = await QuizModel.findById(id).populate('instructorId', 'name email role');
     if (!quiz) {
       next(new NotFoundError('Quiz not found'));
       return;
@@ -169,8 +175,11 @@ export async function getQuizById(
     // Role restrictions
     const instructorIdStr = (quiz.instructorId as any)._id ? (quiz.instructorId as any)._id.toString() : quiz.instructorId.toString();
     if (userRole === 'instructor' && instructorIdStr !== userId?.toString()) {
-      next(new ForbiddenError('You do not have permission to view this quiz'));
-      return;
+      const creatorRole = (quiz.instructorId as any).role;
+      if (creatorRole !== 'admin') {
+        next(new ForbiddenError('You do not have permission to view this quiz'));
+        return;
+      }
     }
 
     if (userRole === 'candidate') {
@@ -220,8 +229,11 @@ export async function updateQuiz(
 
     // Ownership check
     if (userRole === 'instructor' && quiz.instructorId.toString() !== userId?.toString()) {
-      next(new ForbiddenError('You do not have permission to edit this quiz'));
-      return;
+      const creator = await UserModel.findById(quiz.instructorId);
+      if (!creator || creator.role !== 'admin') {
+        next(new ForbiddenError('You do not have permission to edit this quiz'));
+        return;
+      }
     }
 
     // State validation
@@ -273,8 +285,11 @@ export async function publishQuiz(
     }
 
     if (userRole === 'instructor' && quiz.instructorId.toString() !== userId?.toString()) {
-      next(new ForbiddenError('You do not have permission to publish this quiz'));
-      return;
+      const creator = await UserModel.findById(quiz.instructorId);
+      if (!creator || creator.role !== 'admin') {
+        next(new ForbiddenError('You do not have permission to publish this quiz'));
+        return;
+      }
     }
 
     if (quiz.status !== 'Draft') {
@@ -343,8 +358,11 @@ export async function cancelQuiz(
     }
 
     if (userRole === 'instructor' && quiz.instructorId.toString() !== userId?.toString()) {
-      next(new ForbiddenError('You do not have permission to cancel this quiz'));
-      return;
+      const creator = await UserModel.findById(quiz.instructorId);
+      if (!creator || creator.role !== 'admin') {
+        next(new ForbiddenError('You do not have permission to cancel this quiz'));
+        return;
+      }
     }
 
     if (quiz.status === 'Cancelled') {

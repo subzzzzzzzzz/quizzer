@@ -90,10 +90,13 @@ export const InstructorDashboard: React.FC = () => {
 
   const quizzes = quizzesResponse?.data || [];
 
-  // Filter quizzes created by this instructor
+  // Filter quizzes created by this instructor or by admin users
   const instructorQuizzes = quizzes.filter((q) => {
-    const instId = typeof q.instructorId === 'object' ? q.instructorId?._id : q.instructorId;
-    return instId === user?.id;
+    const inst = q.instructorId;
+    if (typeof inst === 'object' && inst !== null) {
+      return inst._id === user?.id || (inst as any).role === 'admin';
+    }
+    return inst === user?.id;
   });
 
   const filteredQuizzes = instructorQuizzes.filter((q) =>

@@ -14,6 +14,7 @@ import Header from '../components/organisms/Header/Header';
 import Sidebar from '../components/organisms/Sidebar/Sidebar';
 import Table, { ColumnType } from '../components/organisms/Table/Table';
 import message from '../utils/message';
+import { formatTimeSpent } from '../pages/candidate/CandidateDashboard';
 
 describe('Additional Component Branch Coverage Tests', () => {
   it('Alert close and fallback type', () => {
@@ -429,5 +430,24 @@ describe('Additional Component Branch Coverage Tests', () => {
     });
     expect(screen.queryByText('Success message')).not.toBeInTheDocument();
     vi.useRealTimers();
+  });
+
+  it('formatTimeSpent formats attempt timeSpent correctly', () => {
+    expect(formatTimeSpent(null)).toBe('—');
+    expect(formatTimeSpent(undefined)).toBe('—');
+    expect(formatTimeSpent({})).toBe('—');
+    expect(formatTimeSpent({ timeTaken: undefined })).toBe('—');
+    
+    // Less than 60 seconds
+    expect(formatTimeSpent({ timeTaken: 8 })).toBe('8 sec');
+    expect(formatTimeSpent({ timeTaken: 59 })).toBe('59 sec');
+    
+    // Exact minutes
+    expect(formatTimeSpent({ timeTaken: 60 })).toBe('1 min');
+    expect(formatTimeSpent({ timeTaken: 360 })).toBe('6 min');
+    
+    // Minutes and seconds
+    expect(formatTimeSpent({ timeTaken: 90 })).toBe('1 min 30 sec');
+    expect(formatTimeSpent({ timeTaken: 425 })).toBe('7 min 5 sec');
   });
 });

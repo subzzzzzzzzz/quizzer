@@ -169,9 +169,12 @@ export const QuizEditor: React.FC = () => {
       await cancelQuiz(id).unwrap();
       message.success('Quiz cancelled successfully');
       setCancelModalVisible(false);
-      refetchQuiz();
       if (isAdmin) {
         navigate('/dashboard');
+      } else if (user?.role === 'instructor') {
+        navigate('/quizzes');
+      } else {
+        refetchQuiz();
       }
     } catch (err: unknown) {
       const errPayload = err as { data?: { message?: string } };
@@ -184,9 +187,12 @@ export const QuizEditor: React.FC = () => {
       if (isEditMode && id) {
         await updateQuiz({ id, body: values }).unwrap();
         message.success('Quiz details updated successfully');
-        refetchQuiz();
         if (isAdmin) {
           navigate('/dashboard');
+        } else if (user?.role === 'instructor') {
+          navigate('/quizzes');
+        } else {
+          refetchQuiz();
         }
       } else {
         const res = await createQuiz(values).unwrap();
@@ -208,7 +214,11 @@ export const QuizEditor: React.FC = () => {
     try {
       await publishQuiz(id).unwrap();
       message.success('Quiz published and scheduled successfully');
-      refetchQuiz();
+      if (user?.role === 'instructor') {
+        navigate('/quizzes');
+      } else {
+        refetchQuiz();
+      }
     } catch (err: unknown) {
       const errPayload = err as { data?: { message?: string } };
       message.error(errPayload.data?.message || 'Failed to publish quiz');
@@ -256,7 +266,10 @@ export const QuizEditor: React.FC = () => {
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <Button
                 variant="secondary"
-                onClick={() => navigate('/quizzes')}
+                onClick={() => {
+                  message.success('Quiz details updated successfully');
+                  navigate('/quizzes');
+                }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -269,7 +282,7 @@ export const QuizEditor: React.FC = () => {
                   borderRadius: '6px',
                 }}
               >
-                <Icon name="arrow-left" size={14} /> Back to Quiz List
+                <Icon name="check" size={14} /> Finish Editing
               </Button>
               {quiz.status !== 'Cancelled' && quiz.status !== 'Completed' && (
                 <Button
