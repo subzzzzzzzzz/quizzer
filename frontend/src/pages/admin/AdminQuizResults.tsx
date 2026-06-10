@@ -127,7 +127,7 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
 
   // Sort participants by score descending so they form a leaderboard
   const sortedParticipants = [...(analytics.participants || [])].sort((a, b) => b.score - a.score);
-  
+
   // Map sequence ID STU001, STU002...
   const participantsWithIds: ParticipantDetail[] = sortedParticipants.map((p, index) => ({
     ...p,
@@ -142,12 +142,12 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
   );
 
   // Formatting completion date
-  const formattedDate = analytics.quiz.endTime 
+  const formattedDate = analytics.quiz.endTime
     ? new Date(analytics.quiz.endTime).toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric'
-      })
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    })
     : 'N/A';
 
   const baseColumns: ColumnType<ParticipantDetail>[] = [
@@ -240,7 +240,7 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
     {
       title: 'ACTION',
       key: 'action',
-      render: (_, record: ParticipantDetail) => (
+      render: (_: unknown, record: ParticipantDetail) => (
         <Button
           size="small"
           disabled={!record.attemptId}
@@ -355,7 +355,7 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
         {/* Left distribution panel */}
         <div style={{ borderRight: '1px solid var(--border-color)', paddingRight: '24px', marginBottom: '20px' }}>
           <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', margin: '0 0 16px 0' }}>Score Distribution</h3>
-          
+
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
             <svg width="130" height="130" viewBox="0 0 42 42">
               <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--border-color)" strokeWidth="4" />
@@ -509,7 +509,7 @@ const DetailedAttemptDrawer: React.FC<{ attemptId: string }> = ({ attemptId }) =
       </div>
 
       <h4 style={{ marginBottom: '16px', fontSize: '15px', fontWeight: 700 }}>Question by Question Review</h4>
-      
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {report.details.map((item, index) => (
           <div
@@ -535,7 +535,7 @@ const DetailedAttemptDrawer: React.FC<{ attemptId: string }> = ({ attemptId }) =
                 {item.isCorrect ? 'Correct' : 'Incorrect'}
               </span>
             </div>
-            
+
             <p style={{ fontWeight: 600, fontSize: '13px', marginBottom: '12px', color: 'var(--text-main)' }}>{item.question}</p>
 
             <div style={{ fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '6px', paddingLeft: '8px', borderLeft: `2px solid ${item.isCorrect ? 'var(--secondary-1)' : 'var(--danger-1)'}` }}>
