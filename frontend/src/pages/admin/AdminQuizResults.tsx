@@ -36,7 +36,7 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
 
   if (isLoading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '100px 0', backgroundColor: '#ffffff', borderRadius: '12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '100px 0', backgroundColor: 'var(--bg-surface)', borderRadius: '12px' }}>
         <Spinner size="large" tip="Loading analytics..." />
       </div>
     );
@@ -44,7 +44,7 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
 
   if (error || !analytics) {
     return (
-      <div style={{ padding: '24px', backgroundColor: '#ffffff', borderRadius: '12px', position: 'relative' }}>
+      <div style={{ padding: '24px', backgroundColor: 'var(--bg-surface)', borderRadius: '12px', position: 'relative' }}>
         {onClose && (
           <button
             onClick={onClose}
@@ -56,13 +56,13 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
               width: '32px',
               height: '32px',
               borderRadius: '50%',
-              backgroundColor: '#f1f5f9',
+              backgroundColor: 'var(--bg-surface-hover)',
               border: 'none',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#64748b',
+              color: 'var(--text-muted)',
               zIndex: 10,
             }}
           >
@@ -243,9 +243,9 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
             fontSize: '11px',
             fontWeight: 600,
             borderRadius: '6px',
-            border: '1px solid #d1d5db',
-            color: '#374151',
-            backgroundColor: '#ffffff'
+            border: '1px solid var(--border-color)',
+            color: 'var(--text-main)',
+            backgroundColor: 'var(--bg-surface)'
           }}
         >
           View Details
@@ -269,61 +269,66 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
       padding: '24px',
       position: 'relative',
       fontFamily: 'Inter, system-ui, sans-serif',
-      backgroundColor: '#ffffff',
+      backgroundColor: 'var(--bg-surface)',
       borderRadius: '12px'
     }}>
       {/* 1. Header with custom close button */}
-      {onClose && (
-        <button
-          onClick={onClose}
-          aria-label="close"
-          style={{
-            position: 'absolute',
-            top: '20px',
-            right: '20px',
-            width: '32px',
-            height: '32px',
-            borderRadius: '50%',
-            backgroundColor: '#f1f5f9',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#64748b',
-            transition: 'all 0.2s',
-            zIndex: 10,
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#e2e8f0'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
-        >
-          <Icon name="x-close" size={14} />
-        </button>
-      )}
-
-      <div style={{ position: 'relative', marginBottom: '24px', paddingRight: '40px' }}>
-        <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-main)', margin: '0 0 4px 0' }}>
-          {analytics.quiz.title} — Results
-        </h2>
-        <div style={{ fontSize: '11px', color: '#94a3b8', display: 'flex', gap: '8px', alignItems: 'center', fontWeight: 600 }}>
-          <span>#Q{analytics.quiz.id.slice(-4).toUpperCase()}</span>
-          <span>-</span>
-          <span>Completed {formattedDate}</span>
-          <span>-</span>
-          <span>{analytics.metrics.assignedCount} participants</span>
+      <div style={{
+        margin: '-24px -24px 24px -24px',
+        padding: '16px 24px',
+        borderBottom: '1px solid var(--border-color)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: 'var(--bg-surface)'
+      }}>
+        <div>
+          <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)', margin: '0 0 4px 0' }}>
+            {analytics.quiz.title} — Results
+          </h2>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', gap: '8px', alignItems: 'center', fontWeight: 600 }}>
+            <span>#Q{analytics.quiz.id.slice(-4).toUpperCase()}</span>
+            <span>-</span>
+            <span>Completed {formattedDate}</span>
+            <span>-</span>
+            <span>{analytics.metrics.assignedCount} participants</span>
+          </div>
         </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            aria-label="close"
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              backgroundColor: 'var(--bg-surface-hover)',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--text-muted)',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--neutral-2)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)'; }}
+          >
+            <Icon name="x-close" size={14} />
+          </button>
+        )}
       </div>
 
       {/* 2. Metrics Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '16px', marginBottom: '24px' }}>
         {[
-          { label: 'TOTAL STUDENTS', value: `${analytics.metrics.assignedCount}`, color: '#1e3a8a' },
-          { label: 'AVG SCORE', value: `${formattedAvg}/${analytics.quiz.maxScore}`, color: '#1e7e34' },
-          { label: 'HIGHEST', value: `${analytics.metrics.highestScore}/${analytics.quiz.maxScore}`, color: '#1e7e34' },
-          { label: 'LOWEST', value: `${analytics.metrics.lowestScore}/${analytics.quiz.maxScore}`, color: '#b91c1c' },
+          { label: 'TOTAL STUDENTS', value: `${analytics.metrics.assignedCount}`, color: 'var(--primary-2)' },
+          { label: 'AVG SCORE', value: `${formattedAvg}/${analytics.quiz.maxScore}`, color: 'var(--secondary-2)' },
+          { label: 'HIGHEST', value: `${analytics.metrics.highestScore}/${analytics.quiz.maxScore}`, color: 'var(--secondary-2)' },
+          { label: 'LOWEST', value: `${analytics.metrics.lowestScore}/${analytics.quiz.maxScore}`, color: 'var(--danger-2)' },
         ].map((item, idx) => (
           <div key={idx} style={{
-            backgroundColor: '#f4f4f3',
+            backgroundColor: 'var(--neutral-1)',
             borderRadius: '10px',
             padding: '12px 16px',
             display: 'flex',
@@ -331,7 +336,7 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
             gap: '4px'
           }}>
             <span style={{ fontSize: '20px', fontWeight: 800, color: item.color, lineHeight: 1.1 }}>{item.value}</span>
-            <span style={{ fontSize: '9px', color: '#64748b', fontWeight: 700, letterSpacing: '0.5px' }}>{item.label}</span>
+            <span style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.5px' }}>{item.label}</span>
           </div>
         ))}
       </div>
@@ -339,12 +344,12 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
       {/* 3. Distribution & Students Table */}
       <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '32px' }}>
         {/* Left distribution panel */}
-        <div style={{ borderRight: '1px solid #f1f5f9', paddingRight: '24px', marginBottom: '20px' }}>
-          <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-main)', margin: '0 0 16px 0' }}>Score Distribution</h3>
+        <div style={{ borderRight: '1px solid var(--border-color)', paddingRight: '24px', marginBottom: '20px' }}>
+          <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', margin: '0 0 16px 0' }}>Score Distribution</h3>
           
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
             <svg width="130" height="130" viewBox="0 0 42 42">
-              <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#f1f5f9" strokeWidth="4" />
+              <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--border-color)" strokeWidth="4" />
               {totalCompleted > 0 && (
                 <>
                   {p1 > 0 && (
@@ -393,7 +398,7 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
                 <text x="50%" y="46%" dominantBaseline="middle" textAnchor="middle" fill="var(--text-main)" fontSize="7" fontWeight="bold">
                   {totalCompleted}
                 </text>
-                <text x="50%" y="62%" dominantBaseline="middle" textAnchor="middle" fill="#64748b" fontSize="3.5" fontWeight="500">
+                <text x="50%" y="62%" dominantBaseline="middle" textAnchor="middle" fill="var(--text-muted)" fontSize="3.5" fontWeight="500">
                   students
                 </text>
               </g>
@@ -404,9 +409,9 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
             {legendItems.map((item, idx) => (
               <div key={idx} style={{ display: 'flex', alignItems: 'center', fontSize: '11px' }}>
                 <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: item.color, marginRight: '8px', display: 'inline-block' }} />
-                <span style={{ color: '#475569', flexGrow: 1, fontWeight: 500 }}>{item.label}</span>
+                <span style={{ color: 'var(--text-muted)', flexGrow: 1, fontWeight: 500 }}>{item.label}</span>
                 <span style={{ fontWeight: 600, color: 'var(--text-main)', width: '30px', textAlign: 'right' }}>{item.count}</span>
-                <span style={{ color: '#94a3b8', width: '40px', textAlign: 'right', fontWeight: 600 }}>{getPctStr(item.count)}</span>
+                <span style={{ color: 'var(--text-muted)', width: '40px', textAlign: 'right', fontWeight: 600 }}>{getPctStr(item.count)}</span>
               </div>
             ))}
           </div>
@@ -415,7 +420,7 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
         {/* Right student table panel */}
         <div style={{ paddingLeft: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>Students</h3>
+            <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-heading)', margin: 0 }}>Students</h3>
             <Input
               placeholder="Search student name or ID..."
               value={searchText}
@@ -471,22 +476,22 @@ const DetailedAttemptDrawer: React.FC<{ attemptId: string }> = ({ attemptId }) =
       <div style={{
         marginBottom: '24px',
         padding: '16px',
-        backgroundColor: '#f8f9fa',
+        backgroundColor: 'var(--bg-base)',
         borderRadius: '8px',
-        border: '1px solid #f1f5f9'
+        border: '1px solid var(--border-color)'
       }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
           <div>
             <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>Candidate</div>
             <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-main)', marginTop: '4px' }}>{report.candidate.name}</div>
-            <div style={{ fontSize: '12px', color: '#64748b' }}>{report.candidate.email}</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{report.candidate.email}</div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>Final Grade</div>
             <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--primary-2)', marginTop: '4px' }}>
               {report.attempt.score} / {report.summary.totalQuestions} ({report.summary.percentage}%)
             </div>
-            <div style={{ fontSize: '11px', color: '#64748b' }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
               Spent {Math.floor((report.attempt.timeTaken || 0) / 60)}m {(report.attempt.timeTaken || 0) % 60}s
             </div>
           </div>
@@ -500,38 +505,39 @@ const DetailedAttemptDrawer: React.FC<{ attemptId: string }> = ({ attemptId }) =
           <div
             key={index}
             style={{
-              border: `1px solid ${item.isCorrect ? '#d1fae5' : '#fee2e2'}`,
-              backgroundColor: item.isCorrect ? '#f0fdf4' : '#fef2f2',
+              border: `1px solid ${item.isCorrect ? 'var(--secondary-1)' : 'var(--danger-1)'}`,
+              backgroundColor: item.isCorrect ? 'var(--secondary-0)' : 'var(--danger-0)',
               borderRadius: '8px',
               padding: '12px 16px'
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'center' }}>
-              <span style={{ fontWeight: 700, fontSize: '12px', color: '#374151' }}>Question {index + 1}</span>
+              <span style={{ fontWeight: 700, fontSize: '12px', color: 'var(--text-main)' }}>Question {index + 1}</span>
               <span style={{
                 fontSize: '11px',
                 fontWeight: 700,
-                color: item.isCorrect ? '#15803d' : '#b91c1c',
-                backgroundColor: item.isCorrect ? '#d1fae5' : '#fee2e2',
+                color: item.isCorrect ? 'var(--secondary-3)' : 'var(--danger-3)',
+                backgroundColor: item.isCorrect ? 'var(--secondary-0)' : 'var(--danger-0)',
                 padding: '2px 8px',
-                borderRadius: '4px'
+                borderRadius: '4px',
+                border: `1px solid ${item.isCorrect ? 'var(--secondary-1)' : 'var(--danger-1)'}`
               }}>
                 {item.isCorrect ? 'Correct' : 'Incorrect'}
               </span>
             </div>
             
-            <p style={{ fontWeight: 600, fontSize: '13px', marginBottom: '12px', color: '#1f2937' }}>{item.question}</p>
+            <p style={{ fontWeight: 600, fontSize: '13px', marginBottom: '12px', color: 'var(--text-main)' }}>{item.question}</p>
 
-            <div style={{ fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '6px', paddingLeft: '8px', borderLeft: `2px solid ${item.isCorrect ? '#86efac' : '#fca5a5'}` }}>
+            <div style={{ fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '6px', paddingLeft: '8px', borderLeft: `2px solid ${item.isCorrect ? 'var(--secondary-1)' : 'var(--danger-1)'}` }}>
               <div>
-                <span style={{ color: '#64748b', fontWeight: 500 }}>Selected Answer: </span>
-                <span style={{ fontWeight: 700, color: item.isCorrect ? '#15803d' : '#b91c1c' }}>
+                <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Selected Answer: </span>
+                <span style={{ fontWeight: 700, color: item.isCorrect ? 'var(--secondary-3)' : 'var(--danger-3)' }}>
                   {formatAnswers(item.candidateAnswers, item.options)}
                 </span>
               </div>
               <div>
-                <span style={{ color: '#64748b', fontWeight: 500 }}>Correct Answer: </span>
-                <span style={{ fontWeight: 700, color: '#15803d' }}>
+                <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Correct Answer: </span>
+                <span style={{ fontWeight: 700, color: 'var(--secondary-3)' }}>
                   {formatAnswers(item.correctAnswers, item.options)}
                 </span>
               </div>

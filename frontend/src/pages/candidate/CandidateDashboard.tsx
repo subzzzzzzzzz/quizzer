@@ -271,7 +271,7 @@ export const CandidateDashboard: React.FC = () => {
   return (
     <div data-testid="candidate-dashboard">
       <div style={{ marginBottom: '24px' }}>
-        <h2 style={{ color: 'var(--text-main)', margin: 0, fontSize: '22px', fontWeight: 700 }}>Dashboard</h2>
+        <h2 style={{ color: 'var(--text-heading)', margin: 0, fontSize: '22px', fontWeight: 700 }}>Dashboard</h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '4px 0 0 0' }}>
           Your quiz overview — {completedQuizzes.length} completed, {liveQuizzes.length} live, {scheduledQuizzes.length} upcoming
         </p>
@@ -291,7 +291,7 @@ export const CandidateDashboard: React.FC = () => {
             bodyStyle={{ padding: '20px' }}
           >
             <div>
-              <h3 style={{ margin: 0, fontWeight: 700, color: 'var(--text-main)', fontSize: '26px', lineHeight: '32px' }}>{card.value}</h3>
+              <h3 style={{ margin: 0, fontWeight: 700, color: 'var(--text-heading)', fontSize: '26px', lineHeight: '32px' }}>{card.value}</h3>
               <div style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)', marginTop: '2px' }}>{card.title}</div>
             </div>
           </Card>

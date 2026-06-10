@@ -13,7 +13,12 @@ import Header from '../components/organisms/Header/Header';
 export const MainLayout: React.FC = () => {
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const { isDark } = useSelector((state: RootState) => state.theme);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 768;
+    }
+    return false;
+  });
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -106,10 +111,28 @@ export const MainLayout: React.FC = () => {
     else if (key === 'analytics') navigate('/analytics');
     else if (key === 'access') navigate('/access');
     else if (key === 'upcoming') navigate('/upcoming');
+
+    if (window.innerWidth < 768) {
+      setCollapsed(true);
+    }
   };
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', backgroundColor: 'var(--bg-base)' }}>
+      {/* Mobile Sidebar backdrop overlay */}
+      {!collapsed && typeof window !== 'undefined' && window.innerWidth < 768 && (
+        <div
+          onClick={() => setCollapsed(true)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(1px)',
+            zIndex: 999,
+          }}
+        />
+      )}
+
       {/* Custom Sidebar organism */}
       <Sidebar
         collapsed={collapsed}

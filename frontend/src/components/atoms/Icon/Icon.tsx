@@ -212,7 +212,7 @@ export const Icon: React.FC<IconProps> = ({
     );
   }
 
-  // 3. Fall back to embedded placeholder paths if file is not yet copied
+  // 3. Fall back to embedded placeholder paths if the svg files are not available
   const getPaths = () => {
     switch (name) {
       case 'dashboard':
@@ -296,6 +296,7 @@ export const Icon: React.FC<IconProps> = ({
             <polyline points="20 6 9 17 4 12" />
           </>
         );
+      case 'x-close':
       case 'close':
         return (
           <>
@@ -318,11 +319,26 @@ export const Icon: React.FC<IconProps> = ({
             <line x1="5" y1="12" x2="19" y2="12" />
           </>
         );
+      case 'timer':
       case 'time':
         return (
           <>
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 16 14" />
+          </>
+        );
+      case 'mail':
+        return (
+          <>
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+            <polyline points="22,6 12,13 2,6" />
+          </>
+        );
+      case 'check-circle':
+        return (
+          <>
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+            <polyline points="22 4 12 14.01 9 11.01" />
           </>
         );
       case 'user':

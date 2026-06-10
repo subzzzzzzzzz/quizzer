@@ -245,7 +245,7 @@ export const QuizEditor: React.FC = () => {
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h2 style={{ color: 'var(--text-main)', margin: 0, fontSize: '22px', fontWeight: 700 }}>
+            <h2 style={{ color: 'var(--text-heading)', margin: 0, fontSize: '22px', fontWeight: 700 }}>
               {isEditMode && user?.role === 'instructor' ? 'Edit Quiz' : isEditMode ? `Edit Quiz: ${quiz?.title}` : 'Create New Quiz'}
             </h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '4px 0 0 0' }}>
@@ -341,7 +341,7 @@ export const QuizEditor: React.FC = () => {
             <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.5px', marginBottom: '2px' }}>
               {getQuizCode(quiz.title, 'instructor')}
             </div>
-            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--text-main)' }}>
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--text-heading)' }}>
               {quiz.title}
             </h3>
           </div>

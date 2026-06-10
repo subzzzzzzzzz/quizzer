@@ -10,11 +10,13 @@ import Alert from '../../components/atoms/Alert/Alert';
 import Table from '../../components/organisms/Table/Table';
 import type { ColumnType } from '../../components/organisms/Table/Table';
 import message from '../../utils/message';
+import Icon from '../../components/atoms/Icon/Icon';
 
 export const AccessManagement: React.FC = () => {
   const [emailInput, setEmailInput] = useState('');
   const [emailError, setEmailError] = useState<string | undefined>(undefined);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   
   const { data: instructorsResponse, isLoading, refetch } = useGetInstructorsQuery();
   const [assignInstructor, { isLoading: isAssigning }] = useAssignInstructorMutation();
@@ -24,6 +26,7 @@ export const AccessManagement: React.FC = () => {
   const handleAssign = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+    setSuccessMsg(null);
 
     if (!emailInput.trim()) {
       setEmailError('Please enter an email address');
@@ -38,7 +41,8 @@ export const AccessManagement: React.FC = () => {
     try {
       const response = await assignInstructor({ email: emailInput }).unwrap();
       if (response.success) {
-        message.success(`${response.data.email} added as instructor successfully`);
+        setSuccessMsg(`${response.data.email} added as Instructor`);
+        message.success(`${response.data.email} added as Instructor`);
         setEmailInput('');
         refetch();
       }
@@ -87,9 +91,34 @@ export const AccessManagement: React.FC = () => {
 
   return (
     <div>
-      <div style={{ marginBottom: '24px' }}>
-        <h2 style={{ color: 'var(--text-main)', margin: 0, fontSize: '22px', fontWeight: 700 }}>Access Management</h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '4px 0 0 0' }}>Manage organizational permissions and assign system roles</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <div>
+          <h2 style={{ color: 'var(--text-heading)', margin: 0, fontSize: '22px', fontWeight: 700 }}>Access Management</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '4px 0 0 0' }}>Manage user roles across the platform</p>
+        </div>
+        {successMsg && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            backgroundColor: 'var(--secondary-0)',
+            border: '1px solid var(--secondary-1)',
+            borderRadius: '24px',
+            padding: '8px 16px',
+            fontSize: '13px',
+            color: 'var(--secondary-3)',
+            fontWeight: 500,
+          }}>
+            <Icon name="check-circle" size={16} color="var(--secondary-2)" />
+            <span>{successMsg}</span>
+            <Icon
+              name="x-close"
+              size={12}
+              style={{ cursor: 'pointer', marginLeft: '12px', opacity: 0.7 }}
+              onClick={() => setSuccessMsg(null)}
+            />
+          </div>
+        )}
       </div>
 
       <Card
@@ -97,11 +126,10 @@ export const AccessManagement: React.FC = () => {
         bordered
         style={{
           marginBottom: '24px',
-          maxWidth: '600px',
         }}
       >
         <div style={{ display: 'block', marginBottom: '16px', color: 'var(--text-muted)', fontSize: '13px' }}>
-          Enter a registered candidate's email address below to elevate their profile to the Instructor role.
+          Enter a registered user's email to grant them Instructor access
         </div>
 
         {errorMsg && (
@@ -117,28 +145,36 @@ export const AccessManagement: React.FC = () => {
 
         <form onSubmit={handleAssign}>
           <FormField
-            label="User Email Address"
+            label="Email Address"
             error={emailError}
             required
           >
-            <Input
-              placeholder="e.g. priya@company.com"
-              value={emailInput}
-              onChange={(e) => {
-                setEmailInput(e.target.value);
-                setErrorMsg(null);
-                if (emailError) setEmailError(undefined);
-              }}
-            />
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+              <div style={{ flexGrow: 1 }}>
+                <Input
+                  placeholder="priya@company.com"
+                  value={emailInput}
+                  onChange={(e) => {
+                    setEmailInput(e.target.value);
+                    setErrorMsg(null);
+                    setSuccessMsg(null);
+                    if (emailError) setEmailError(undefined);
+                  }}
+                  prefix={<Icon name="mail" size={14} style={{ opacity: 0.5 }} />}
+                />
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>
+                  User must already be registered on the platform
+                </div>
+              </div>
+              <Button
+                type="submit"
+                loading={isAssigning}
+                style={{ fontWeight: 600, height: '40px' }}
+              >
+                Assign as Instructor
+              </Button>
+            </div>
           </FormField>
-
-          <Button
-            type="submit"
-            loading={isAssigning}
-            style={{ fontWeight: 600 }}
-          >
-            Assign Role
-          </Button>
         </form>
       </Card>
 

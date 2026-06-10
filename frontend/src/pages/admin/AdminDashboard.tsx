@@ -204,7 +204,7 @@ export const AdminDashboard: React.FC = () => {
   return (
     <div data-testid="admin-dashboard">
       <div style={{ marginBottom: '24px' }}>
-        <h2 style={{ color: 'var(--text-main)', margin: 0, fontSize: '22px', fontWeight: 700 }}>Admin Dashboard</h2>
+        <h2 style={{ color: 'var(--text-heading)', margin: 0, fontSize: '22px', fontWeight: 700 }}>Admin Dashboard</h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '4px 0 0 0' }}>Platform overview — Completed quizzes now show View Result</p>
       </div>
 
@@ -309,18 +309,6 @@ export const AdminDashboard: React.FC = () => {
                 style={{ width: '240px' }}
                 prefix={<Icon name="search" size={14} style={{ opacity: 0.5 }} />}
               />
-              <Button
-                variant="primary"
-                onClick={() => navigate('/quizzes/create')}
-                style={{
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}
-              >
-                <Icon name="plus" size={16} /> Create Quiz
-              </Button>
             </div>
           }
           bordered
@@ -348,6 +336,8 @@ export const AdminDashboard: React.FC = () => {
           width={960}
           style={{ top: 20 }}
           destroyOnClose
+          showHeader={false}
+          bodyStyle={{ padding: 0 }}
         >
           <AdminQuizResults
             quizId={selectedQuizId}

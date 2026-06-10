@@ -4,7 +4,6 @@ import type { Quiz } from '../../services/api';
 import Card from '../../components/molecules/Card/Card';
 import Input from '../../components/atoms/Input/Input';
 import Button from '../../components/atoms/Button/Button';
-import Tag from '../../components/atoms/Tag/Tag';
 import Modal from '../../components/molecules/Modal/Modal';
 import Checkbox from '../../components/atoms/Checkbox/Checkbox';
 import Alert from '../../components/atoms/Alert/Alert';
@@ -84,88 +83,136 @@ export const QuizList: React.FC = () => {
   );
 
   const getStatusTag = (status: string) => {
+    let dotColor = '#94a3b8';
+    let textColor = '#64748b';
+
     switch (status) {
       case 'Live':
-        return <Tag color="success">LIVE</Tag>;
+        dotColor = '#16a34a';
+        textColor = '#16a34a';
+        break;
       case 'Scheduled':
-        return <Tag color="processing">SCHEDULED</Tag>;
+        dotColor = '#2563eb';
+        textColor = '#2563eb';
+        break;
       case 'Draft':
-        return <Tag color="default">DRAFT</Tag>;
+        dotColor = '#d97706';
+        textColor = '#d97706';
+        break;
       case 'Cancelled':
-        return <Tag color="error">CANCELLED</Tag>;
+        dotColor = '#dc2626';
+        textColor = '#dc2626';
+        break;
       case 'Completed':
-        return <Tag color="warning">COMPLETED</Tag>;
+        dotColor = '#4b5563';
+        textColor = '#4b5563';
+        break;
       default:
-        return <Tag color="default">{status.toUpperCase()}</Tag>;
+        break;
     }
+
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: textColor, fontWeight: 600 }}>
+        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: dotColor, display: 'inline-block' }} />
+        {status}
+      </span>
+    );
+  };
+
+  const renderReadinessTags = (record: Quiz) => {
+    const qCount = record.questionCount || 0;
+    const pCount = record.participantCount || 0;
+
+    const qReady = qCount > 0;
+    const pReady = pCount > 0;
+
+    const qBg = qReady ? '#e2f9eb' : '#fee2e2';
+    const qColor = qReady ? '#1e7e34' : '#991b1b';
+    const qBorder = qReady ? '1px solid #1e7e34' : '1px solid #991b1b';
+
+    const pBg = pReady ? '#e2f9eb' : '#fee2e2';
+    const pColor = pReady ? '#1e7e34' : '#991b1b';
+    const pBorder = pReady ? '1px solid #1e7e34' : '1px solid #991b1b';
+
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span style={{
+          backgroundColor: qBg,
+          color: qColor,
+          border: qBorder,
+          borderRadius: '20px',
+          padding: '2px 10px',
+          fontSize: '11px',
+          fontWeight: 600,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px'
+        }}>
+          <span>{qReady ? '✓' : '✗'}</span>
+          <span>Questions</span>
+        </span>
+
+        <span style={{
+          backgroundColor: pBg,
+          color: pColor,
+          border: pBorder,
+          borderRadius: '20px',
+          padding: '2px 10px',
+          fontSize: '11px',
+          fontWeight: 600,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px'
+        }}>
+          <span>{pReady ? '✓' : '✗'}</span>
+          <span>Participants</span>
+        </span>
+      </div>
+    );
+  };
+
+  const formatScheduledDate = (record: Quiz) => {
+    if (record.status === 'Draft' || !record.startTime) return '—';
+    const d = new Date(record.startTime);
+    if (isNaN(d.getTime())) return '—';
+
+    const day = d.getDate();
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = months[d.getMonth()];
+    const year = d.getFullYear();
+
+    let hours = d.getHours();
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+
+    return `${day} ${month} ${year} - ${hours}:${minutes} ${ampm}`;
   };
 
   const columns: ColumnType<Quiz>[] = [
     {
-      title: 'Quiz Title',
+      title: 'QUIZ TITLE',
       key: 'title',
       render: (_, record) => (
-        <div>
-          <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{record.title}</div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-            {record.questionType === 'multi' ? 'Multiple Choice (Select All)' : 'Single Choice (Select One)'}
-          </div>
-        </div>
+        <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{record.title}</span>
       ),
     },
     {
-      title: 'Status',
+      title: 'STATUS',
       key: 'status',
       dataIndex: 'status',
       render: (status) => getStatusTag(String(status)),
     },
     {
-      title: 'Questions Ready',
-      key: 'questionsReady',
-      render: (_, record) => {
-        const count = record.questionCount || 0;
-        return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: count > 0 ? 'var(--color-success)' : 'var(--color-error)', fontWeight: 700 }}>
-              {count > 0 ? '✓' : '✗'}
-            </span>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>({count} questions)</span>
-          </div>
-        );
-      },
-    },
-    {
-      title: 'Participants Ready',
-      key: 'participantsReady',
-      render: (_, record) => {
-        const count = record.participantCount || 0;
-        return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: count > 0 ? 'var(--color-success)' : 'var(--color-error)', fontWeight: 700 }}>
-              {count > 0 ? '✓' : '✗'}
-            </span>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>({count} candidates)</span>
-          </div>
-        );
-      },
-    },
-    {
-      title: 'Schedule Window',
+      title: 'SCHEDULED',
       key: 'schedule',
       render: (_, record) => {
         const canEditSchedule = record.status === 'Draft' || record.status === 'Scheduled';
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '12px' }}>
-              {record.startTime && record.endTime ? (
-                <>
-                  {new Date(record.startTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
-                  <br />
-                  {new Date(record.endTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
-                </>
-              ) : (
-                'Not Scheduled'
-              )}
+            <span style={{ fontSize: '12px', color: '#475569' }}>
+              {formatScheduledDate(record)}
             </span>
             {canEditSchedule && (
               <button
@@ -194,27 +241,35 @@ export const QuizList: React.FC = () => {
       },
     },
     {
-      title: 'Actions',
-      key: 'actions',
+      title: 'READINESS',
+      key: 'readiness',
+      render: (_, record) => renderReadinessTags(record),
+    },
+    {
+      title: 'ACTION',
+      key: 'action',
       render: (_, record) => {
-        const isDraft = record.status === 'Draft';
-        const isScheduled = record.status === 'Scheduled';
-        const isLive = record.status === 'Live';
-        const isCompleted = record.status === 'Completed';
-
+        const canCancel = record.status === 'Live' || record.status === 'Scheduled';
         return (
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <Button
               variant="secondary"
               size="small"
               onClick={() => navigate(`/quizzes/${record._id}/edit`)}
-              disabled={isCompleted || record.status === 'Cancelled'}
-              style={{ fontSize: '11px', fontWeight: 600 }}
+              disabled={record.status === 'Completed' || record.status === 'Cancelled'}
+              style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                borderRadius: '6px',
+                border: '1px solid #d1d5db',
+                color: '#374151',
+                backgroundColor: '#ffffff',
+                padding: '4px 12px'
+              }}
             >
-              {isDraft ? 'Configure' : 'Edit'}
+              Edit
             </Button>
-
-            {(isScheduled || isLive) && (
+            {canCancel && (
               <Button
                 variant="text"
                 size="small"
@@ -224,8 +279,7 @@ export const QuizList: React.FC = () => {
                 Cancel
               </Button>
             )}
-
-            {isCompleted && (
+            {record.status === 'Completed' && (
               <Button
                 variant="primary"
                 size="small"
@@ -253,8 +307,8 @@ export const QuizList: React.FC = () => {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <h2 style={{ color: 'var(--text-main)', margin: 0, fontSize: '22px', fontWeight: 700 }}>Quizzes Editor</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '4px 0 0 0' }}>Manage assessment drafts, configure questions, enroll students, and publish assessments.</p>
+          <h2 style={{ color: 'var(--text-heading)', margin: 0, fontSize: '22px', fontWeight: 700 }}>Update Quizzes</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '4px 0 0 0' }}>Draft & Scheduled - Readiness Indicators</p>
         </div>
         {user?.role !== 'instructor' && (
           <Button
@@ -272,17 +326,19 @@ export const QuizList: React.FC = () => {
         )}
       </div>
 
-      <Card bordered>
-        <div style={{ marginBottom: '16px' }}>
+      <Card
+        title={<span style={{ fontWeight: 700, fontSize: '15px' }}>All Quizzes</span>}
+        extra={
           <Input
-            placeholder="Search quiz title..."
+            placeholder="Search draft & scheduled..."
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            style={{ width: '320px' }}
-            prefix={<Icon name="search" size={14} style={{ opacity: 0.5 }} />}
+            style={{ width: '240px', fontSize: '12px' }}
+            prefix={<Icon name="search" size={12} style={{ opacity: 0.5 }} />}
           />
-        </div>
-
+        }
+        bordered
+      >
         <Table
           dataSource={filteredQuizzes}
           columns={columns as ColumnType<unknown>[]}
@@ -359,6 +415,8 @@ export const QuizList: React.FC = () => {
           width={960}
           style={{ top: 20 }}
           destroyOnClose
+          showHeader={false}
+          bodyStyle={{ padding: 0 }}
         >
           <AdminQuizResults
             quizId={selectedQuizId}

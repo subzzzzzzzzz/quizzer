@@ -161,7 +161,7 @@ export const AssignedQuizzes: React.FC = () => {
       {/* Cards Grid for active and upcoming quizzes */}
       {upcomingQuizzes.length > 0 && (
         <div>
-          <h3 style={{ color: 'var(--text-main)', fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>
+          <h3 style={{ color: 'var(--text-heading)', fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>
             Active & Upcoming Assessments
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>

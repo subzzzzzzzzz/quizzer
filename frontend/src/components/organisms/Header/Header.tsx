@@ -63,6 +63,11 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
       </div>
 
+      {/* Centered Brand name on Mobile */}
+      <div className="header-brand-mobile">
+        QuizArena
+      </div>
+
       {/* Clock, Theme Switch, Profile info */}
       <div className="header-right">
         {/* Toggle Theme Widget */}

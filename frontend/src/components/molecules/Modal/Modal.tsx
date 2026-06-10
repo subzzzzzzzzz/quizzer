@@ -12,6 +12,8 @@ export interface ModalProps {
   destroyOnClose?: boolean;
   children?: React.ReactNode;
   style?: React.CSSProperties;
+  bodyStyle?: React.CSSProperties;
+  showHeader?: boolean;
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -23,6 +25,8 @@ export const Modal: React.FC<ModalProps> = ({
   destroyOnClose = false,
   children,
   style,
+  bodyStyle,
+  showHeader = true,
 }) => {
   // Prevent body scrolling when modal is open
   useEffect(() => {
@@ -70,15 +74,17 @@ export const Modal: React.FC<ModalProps> = ({
         role="dialog"
         aria-modal="true"
       >
-        <div className="modal-header">
-          {title && <div className="modal-title">{title}</div>}
-          {onCancel && (
-            <button type="button" aria-label="Close Modal" className="modal-close-btn" onClick={onCancel}>
-              <Icon name="x-close" size={16} />
-            </button>
-          )}
-        </div>
-        <div className="modal-body">
+        {showHeader && (title || onCancel) && (
+          <div className="modal-header">
+            {title && <div className="modal-title">{title}</div>}
+            {onCancel && (
+              <button type="button" aria-label="Close Modal" className="modal-close-btn" onClick={onCancel}>
+                <Icon name="x-close" size={16} />
+              </button>
+            )}
+          </div>
+        )}
+        <div className="modal-body" style={bodyStyle}>
           {(!destroyOnClose || open) && children}
         </div>
         {renderFooter()}

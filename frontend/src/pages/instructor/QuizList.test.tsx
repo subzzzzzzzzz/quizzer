@@ -56,16 +56,16 @@ describe('QuizList component', () => {
 
     expect(screen.getByText('CSS Advanced Selectors')).toBeInTheDocument();
     expect(screen.getByText('TypeScript Generics')).toBeInTheDocument();
-    expect(screen.getByText('LIVE')).toBeInTheDocument();
-    expect(screen.getByText('DRAFT')).toBeInTheDocument();
-    expect(screen.getByText('(5 questions)')).toBeInTheDocument();
-    expect(screen.getByText('(10 candidates)')).toBeInTheDocument();
+    expect(screen.getByText('Live')).toBeInTheDocument();
+    expect(screen.getByText('Draft')).toBeInTheDocument();
+    expect(screen.getAllByText('Questions')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Participants')[0]).toBeInTheDocument();
   });
 
   it('filters quizzes using the title search text box', async () => {
     renderWithProviders(<QuizList />);
 
-    const searchInput = screen.getByPlaceholderText('Search quiz title...');
+    const searchInput = screen.getByPlaceholderText('Search draft & scheduled...');
     fireEvent.change(searchInput, { target: { value: 'CSS' } });
 
     expect(screen.getByText('CSS Advanced Selectors')).toBeInTheDocument();

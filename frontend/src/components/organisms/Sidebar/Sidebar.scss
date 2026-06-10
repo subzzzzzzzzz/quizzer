@@ -173,3 +173,25 @@
     }
   }
 }
+
+@media (max-width: 768px) {
+  .custom-sidebar {
+    position: fixed;
+    top: 64px;
+    left: -240px;
+    z-index: 1000;
+    height: calc(100vh - 64px);
+    width: 240px !important;
+    background-color: var(--bg-surface);
+    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.1);
+    transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+
+    &.custom-sidebar--collapsed {
+      left: -240px;
+    }
+
+    &:not(.custom-sidebar--collapsed) {
+      left: 0;
+    }
+  }
+}

@@ -199,7 +199,7 @@ export const InstructorDashboard: React.FC = () => {
   return (
     <div data-testid="instructor-dashboard">
       <div style={{ marginBottom: '24px' }}>
-        <h2 style={{ color: 'var(--text-main)', margin: 0, fontSize: '22px', fontWeight: 700 }}>Instructor Dashboard</h2>
+        <h2 style={{ color: 'var(--text-heading)', margin: 0, fontSize: '22px', fontWeight: 700 }}>Instructor Dashboard</h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '4px 0 0 0' }}>Your quiz activity for today</p>
       </div>
 
@@ -208,7 +208,7 @@ export const InstructorDashboard: React.FC = () => {
         <div>
           <Card bordered>
             <div style={{ padding: '4px' }}>
-              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--text-main)' }}>Today's Quiz Status</h3>
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--text-heading)' }}>Today's Quiz Status</h3>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', marginBottom: '20px' }}>{getTodayDateStr()}</div>
             </div>
 

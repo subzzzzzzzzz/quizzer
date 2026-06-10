@@ -113,7 +113,7 @@ export const LoginPage: React.FC = () => {
 
       {/* Left-aligned title */}
       <div style={{ textAlign: 'left', marginBottom: '24px' }}>
-        <h2 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '4px' }}>
+        <h2 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '4px' }}>
           Welcome back
         </h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>

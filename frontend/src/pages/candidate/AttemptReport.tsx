@@ -81,7 +81,7 @@ export const DetailedAttemptReport: React.FC<DetailedAttemptReportProps> = ({ at
         </Card>
       </div>
 
-      <h4 style={{ marginBottom: '16px', color: 'var(--text-main)', fontSize: '15px', fontWeight: 700 }}>Question by Question Review</h4>
+      <h4 style={{ marginBottom: '16px', color: 'var(--text-heading)', fontSize: '15px', fontWeight: 700 }}>Question by Question Review</h4>
       
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {report.details.map((item, index) => (

@@ -50,15 +50,17 @@
   --neutral-6: #5F5E5A;
   --neutral-7: #444441;
   --neutral-8: #2C2C2A;
-  --neutral-9: #1A1A18;
+  --neutral-9: #1A1A1B;
 
   /* Intent Variables mapping */
-  --bg-base: var(--neutral-0);
-  --bg-surface: var(--neutral-1);
-  --bg-surface-hover: var(--neutral-2);
-  --text-main: var(--neutral-9);
-  --text-muted: var(--neutral-5);
-  --border-color: var(--neutral-3);
+  --bg-base: var(--neutral-1);
+  --bg-surface: var(--neutral-0);
+  --bg-surface-hover: var(--neutral-1);
+  --text-main: var(--neutral-7);
+  --text-muted: var(--neutral-6);
+  --text-heading: var(--neutral-8);
+  --text-display: var(--neutral-9);
+  --border-color: var(--neutral-2);
   --color-primary: var(--primary-2);
   --color-success: var(--secondary-2);
   --color-warning: var(--tertiary-2);
@@ -102,12 +104,14 @@ body.dark {
   --neutral-8: #D3D1C7;
   --neutral-9: #F5F4F0;
 
-  --bg-base: var(--neutral-0);
-  --bg-surface: var(--neutral-1);
+  --bg-base: var(--neutral-1);
+  --bg-surface: var(--neutral-0);
   --bg-surface-hover: var(--neutral-2);
-  --text-main: var(--neutral-9);
+  --text-main: var(--neutral-7);
   --text-muted: var(--neutral-6);
-  --border-color: var(--neutral-3);
+  --text-heading: var(--neutral-8);
+  --text-display: var(--neutral-9);
+  --border-color: var(--neutral-2);
   --color-primary: var(--primary-2);
   --color-success: var(--secondary-2);
   --color-warning: var(--tertiary-2);
@@ -135,18 +139,22 @@ body {
 h1 {
   font-size: var(--h1-size);
   font-weight: var(--h1-weight);
+  color: var(--text-heading);
 }
 h2 {
   font-size: var(--h2-size);
   font-weight: var(--h2-weight);
+  color: var(--text-heading);
 }
 h3 {
   font-size: var(--h3-size);
   font-weight: var(--h3-weight);
+  color: var(--text-heading);
 }
 h4 {
   font-size: var(--h4-size);
   font-weight: var(--h4-weight);
+  color: var(--text-heading);
 }
 small {
   font-size: var(--small-size);

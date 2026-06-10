@@ -46,10 +46,10 @@ describe('AccessManagement Page', () => {
 
     renderWithProviders(<AccessManagement />);
 
-    const emailInput = screen.getByPlaceholderText('e.g. priya@company.com');
+    const emailInput = screen.getByPlaceholderText('priya@company.com');
     fireEvent.change(emailInput, { target: { value: 'newinst@test.com' } });
 
-    const submitBtn = screen.getByRole('button', { name: /Assign Role/i });
+    const submitBtn = screen.getByRole('button', { name: /Assign as Instructor/i });
     await act(async () => {
       fireEvent.click(submitBtn);
     });
@@ -65,10 +65,10 @@ describe('AccessManagement Page', () => {
 
     renderWithProviders(<AccessManagement />);
 
-    const emailInput = screen.getByPlaceholderText('e.g. priya@company.com');
+    const emailInput = screen.getByPlaceholderText('priya@company.com');
     fireEvent.change(emailInput, { target: { value: 'unknown@test.com' } });
 
-    const submitBtn = screen.getByRole('button', { name: /Assign Role/i });
+    const submitBtn = screen.getByRole('button', { name: /Assign as Instructor/i });
     await act(async () => {
       fireEvent.click(submitBtn);
     });

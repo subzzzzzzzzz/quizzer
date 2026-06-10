@@ -172,7 +172,7 @@ export const QuizAttempt: React.FC = () => {
           <div style={{ color: 'var(--color-success)', marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
             <Icon name="check" size={48} />
           </div>
-          <h2 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-main)' }}>Assessment Completed</h2>
+          <h2 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-heading)' }}>Assessment Completed</h2>
           <p style={{ marginTop: '8px', color: 'var(--text-muted)' }}>This attempt has already been submitted.</p>
           <Button variant="primary" onClick={() => navigate('/upcoming')} style={{ marginTop: '20px' }}>
             Go to Assessments
@@ -199,7 +199,7 @@ export const QuizAttempt: React.FC = () => {
       <Card bordered bodyStyle={{ padding: '12px 16px' }} style={{ marginBottom: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h2 style={{ margin: 0, color: 'var(--text-main)', fontSize: '18px', fontWeight: 700 }}>
+            <h2 style={{ margin: 0, color: 'var(--text-heading)', fontSize: '18px', fontWeight: 700 }}>
               {typeof attempt.quizId === 'object' ? (attempt.quizId as Quiz).title : 'Assessment'}
             </h2>
             <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, marginTop: '2px' }}>SECURE PROCTORED MODE ACTIVE</div>
@@ -248,7 +248,7 @@ export const QuizAttempt: React.FC = () => {
                   <Tag color="processing">{isMultiSelect ? 'Multi-Select MCQ' : 'Single MCQ'}</Tag>
                 </div>
 
-                <h3 style={{ marginBottom: '24px', fontSize: '17px', color: 'var(--text-main)', lineHeight: '24px', fontWeight: 600 }}>
+                <h3 style={{ marginBottom: '24px', fontSize: '17px', color: 'var(--text-heading)', lineHeight: '24px', fontWeight: 600 }}>
                   {currentQuestion.question}
                 </h3>
 
@@ -449,7 +449,7 @@ export const QuizAttempt: React.FC = () => {
           >
             ✓
           </div>
-          <h3 style={{ color: 'var(--text-main)', marginBottom: '8px', fontSize: '18px', fontWeight: 700 }}>Thank You!</h3>
+          <h3 style={{ color: 'var(--text-heading)', marginBottom: '8px', fontSize: '18px', fontWeight: 700 }}>Thank You!</h3>
           <p style={{ color: 'var(--text-muted)', fontSize: '13px', lineHeight: '20px', marginBottom: '24px' }}>
             Thank you for completing the assessment. Your answers have been successfully logged.
           </p>

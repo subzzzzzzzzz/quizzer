@@ -166,7 +166,7 @@ export const AnalyticsDashboard: React.FC = () => {
   return (
     <div>
       <div style={{ marginBottom: '24px' }}>
-        <h2 style={{ color: 'var(--text-main)', margin: 0, fontSize: '22px', fontWeight: 700 }}>Analytics</h2>
+        <h2 style={{ color: 'var(--text-heading)', margin: 0, fontSize: '22px', fontWeight: 700 }}>Analytics</h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '4px 0 0 0' }}>
           Results from all completed quizzes assigned to you
         </p>
@@ -206,6 +206,8 @@ export const AnalyticsDashboard: React.FC = () => {
           width={960}
           style={{ top: 20 }}
           destroyOnClose
+          showHeader={false}
+          bodyStyle={{ padding: 0 }}
         >
           <AdminQuizResults
             quizId={selectedQuizId}
