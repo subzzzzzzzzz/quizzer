@@ -100,6 +100,23 @@ Open `http://localhost:5173` in your browser to access the app.
 
 ---
 
+## 📖 API Documentation (Swagger / OpenAPI)
+
+The backend provides interactive and machine-readable API documentation following the OpenAPI 3.0 specification. It covers all endpoints, query parameters, payload schemas, and authentication details.
+
+### Accessing the Documentation
+When the backend server is running locally on port `3000`, you can access the docs via:
+* **Interactive Swagger UI**: Visit **[http://localhost:3000/docs](http://localhost:3000/docs)** (or **[http://localhost:3000/api-docs](http://localhost:3000/api-docs)**).
+* **Raw OpenAPI Spec (JSON)**: Access the specification schema at **[http://localhost:3000/api/v1/swagger.json](http://localhost:3000/api/v1/swagger.json)**.
+
+### Testing Authenticated Endpoints in Swagger UI
+1. Go to the `POST /auth/login` endpoint in the docs.
+2. Click **Try it out**, enter the seed credentials (e.g. `instructor@quizarena.com` / `Password123`), and click **Execute**.
+3. Upon successful validation, your browser automatically saves the secure `token` cookie.
+4. All subsequent API queries executed directly through the Swagger UI (e.g. creating quizzes or fetching candidates) will automatically be authenticated!
+
+---
+
 ## 🧪 Executing Tests & Generating Coverage Reports
 
 Both directories support comprehensive test suites with target code coverage metrics of **>90%**.
