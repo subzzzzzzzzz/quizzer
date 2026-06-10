@@ -412,7 +412,7 @@ export const swaggerDocument = {
       },
       "get": {
         "summary": "List quizzes",
-        "description": "Aggregates and filters quizzes depending on roles:\n- Instructor: gets quizzes created by them.\n- Candidate: gets quizzes assigned to them (excluding Drafts).\n- Admin: gets all quizzes in the platform.",
+        "description": "Aggregates and filters quizzes depending on roles:\n- Instructor: gets quizzes created by them, as well as all quizzes created by admins.\n- Candidate: gets quizzes assigned to them (excluding Drafts).\n- Admin: gets all quizzes in the platform.",
         "responses": {
           "200": {
             "description": "List of quizzes with question count, participant count, and candidate attempt status where applicable",
@@ -457,6 +457,7 @@ export const swaggerDocument = {
     "/quizzes/{id}": {
       "get": {
         "summary": "Get quiz by ID",
+        "description": "Retrieves quiz details. Required role: Admin, Candidate (if assigned), or Instructor (if creator or if quiz was created by an Admin).",
         "parameters": [
           {
             "name": "id",
@@ -499,7 +500,7 @@ export const swaggerDocument = {
       },
       "put": {
         "summary": "Update quiz details",
-        "description": "Required role: Admin, or Instructor (must own the quiz). Edit is disallowed if the quiz status is Completed, Cancelled, or Expired.",
+        "description": "Required role: Admin, or Instructor (must be the creator or the quiz was created by an Admin). Edit is disallowed if the quiz status is Completed, Cancelled, or Expired.",
         "parameters": [
           {
             "name": "id",
@@ -576,7 +577,7 @@ export const swaggerDocument = {
     "/quizzes/{id}/publish": {
       "post": {
         "summary": "Publish a draft quiz",
-        "description": "Required role: Admin, or Instructor (must own the quiz). Validates completeness: must have at least 1 question, 1 participant, a start time, and an end time.",
+        "description": "Required role: Admin, or Instructor (must be the creator or the quiz was created by an Admin). Validates completeness: must have at least 1 question, 1 participant, a start time, and an end time.",
         "parameters": [
           {
             "name": "id",
@@ -609,7 +610,7 @@ export const swaggerDocument = {
     "/quizzes/{id}/cancel": {
       "post": {
         "summary": "Cancel an active or scheduled quiz",
-        "description": "Required role: Admin or Instructor (must own the quiz). Marks status as Cancelled.",
+        "description": "Required role: Admin, or Instructor (must be the creator or the quiz was created by an Admin). Marks status as Cancelled.",
         "parameters": [
           {
             "name": "id",
@@ -639,7 +640,7 @@ export const swaggerDocument = {
     "/questions": {
       "post": {
         "summary": "Add a question to a quiz",
-        "description": "Required role: Admin or Instructor (creator). Allowed only for Draft status quizzes.",
+        "description": "Required role: Admin, or Instructor (must be the creator or the quiz was created by an Admin). Allowed only for Draft status quizzes.",
         "requestBody": {
           "required": true,
           "content": {
@@ -688,7 +689,7 @@ export const swaggerDocument = {
     "/questions/{id}": {
       "put": {
         "summary": "Edit a question",
-        "description": "Required role: Admin or Instructor. Modifies a question belonging to a Draft status quiz.",
+        "description": "Required role: Admin, or Instructor (must be the creator or the quiz was created by an Admin). Modifies a question belonging to a Draft status quiz.",
         "parameters": [
           {
             "name": "id",
@@ -731,7 +732,7 @@ export const swaggerDocument = {
       },
       "delete": {
         "summary": "Delete a question",
-        "description": "Required role: Admin or Instructor. Deletes a question from a Draft status quiz.",
+        "description": "Required role: Admin, or Instructor (must be the creator or the quiz was created by an Admin). Deletes a question from a Draft status quiz.",
         "parameters": [
           {
             "name": "id",
@@ -794,7 +795,7 @@ export const swaggerDocument = {
     "/questions/bulk": {
       "post": {
         "summary": "Bulk import questions",
-        "description": "Required role: Admin or Instructor. Allows uploading an array of questions directly to a Draft quiz.",
+        "description": "Required role: Admin, or Instructor (must be the creator or the quiz was created by an Admin). Allows uploading an array of questions directly to a Draft quiz.",
         "requestBody": {
           "required": true,
           "content": {
@@ -848,7 +849,7 @@ export const swaggerDocument = {
     "/participants/quiz/{quizId}": {
       "get": {
         "summary": "Get quiz participants",
-        "description": "Required role: Admin or Instructor (creator). Returns list of assigned candidates for a quiz.",
+        "description": "Required role: Admin, or Instructor (must be the creator or the quiz was created by an Admin). Returns list of assigned candidates for a quiz.",
         "parameters": [
           {
             "name": "quizId",
@@ -881,7 +882,7 @@ export const swaggerDocument = {
     "/participants/bulk": {
       "post": {
         "summary": "Assign candidates by emails in bulk",
-        "description": "Required role: Admin or Instructor. Matches emails to register candidates and generates assignments for the Draft quiz.",
+        "description": "Required role: Admin, or Instructor (must be the creator or the quiz was created by an Admin). Matches emails to register candidates and generates assignments for the Draft quiz.",
         "requestBody": {
           "required": true,
           "content": {
@@ -930,7 +931,7 @@ export const swaggerDocument = {
     "/participants/{id}": {
       "delete": {
         "summary": "Remove candidate assignment",
-        "description": "Required role: Admin or Instructor (creator). Removes participant record for Draft status quizzes.",
+        "description": "Required role: Admin, or Instructor (must be the creator or the quiz was created by an Admin). Removes participant record for Draft status quizzes.",
         "parameters": [
           {
             "name": "id",
@@ -1118,7 +1119,7 @@ export const swaggerDocument = {
     "/attempts/{id}": {
       "get": {
         "summary": "Get attempt details",
-        "description": "Required role: Owner Candidate, or Instructor (owner of the quiz), or Admin.",
+        "description": "Required role: Owner Candidate, or Instructor (creator or if the quiz was created by an Admin), or Admin.",
         "parameters": [
           {
             "name": "id",
@@ -1148,7 +1149,7 @@ export const swaggerDocument = {
     "/analytics/global": {
       "get": {
         "summary": "Get global dashboard metrics",
-        "description": "Required role: Admin or Instructor. Admin sees platform-wide aggregates; Instructor sees metrics limited to quizzes they created.",
+        "description": "Required role: Admin or Instructor. Admin sees platform-wide aggregates; Instructor sees metrics limited to quizzes they created or those created by admins.",
         "responses": {
           "200": {
             "description": "Global statistics count",
@@ -1199,7 +1200,7 @@ export const swaggerDocument = {
     "/analytics/quiz/{quizId}": {
       "get": {
         "summary": "Get quiz analytics details",
-        "description": "Required role: Admin or Instructor (creator). Returns counts, averages, score distribution, and student participation tables.",
+        "description": "Required role: Admin, or Instructor (must be the creator or the quiz was created by an Admin). Returns counts, averages, score distribution, and student participation tables.",
         "parameters": [
           {
             "name": "quizId",
@@ -1279,7 +1280,7 @@ export const swaggerDocument = {
     "/analytics/attempt/{attemptId}": {
       "get": {
         "summary": "Get detailed attempt report",
-        "description": "Allows viewing question-by-question candidate choices, correctness markers, and feedback. Restricts to owner Candidate, creator Instructor, or Admin.",
+        "description": "Allows viewing question-by-question candidate choices, correctness markers, and feedback. Restricts to owner Candidate, Instructor (creator or if the quiz was created by an Admin), or Admin.",
         "parameters": [
           {
             "name": "attemptId",

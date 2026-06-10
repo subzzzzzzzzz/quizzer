@@ -1,17 +1,15 @@
 import React, { useState } from 'react';
-import { useGetQuizzesQuery, useStartAttemptMutation } from '../../services/api';
+import { useGetQuizzesQuery, useStartAttemptMutation, useGetAttemptReportQuery } from '../../services/api';
 import type { Quiz } from '../../services/api';
 import Card from '../../components/molecules/Card/Card';
 import Button from '../../components/atoms/Button/Button';
 import Input from '../../components/atoms/Input/Input';
 import Tag from '../../components/atoms/Tag/Tag';
 import Spinner from '../../components/atoms/Spinner/Spinner';
-import Drawer from '../../components/organisms/Drawer/Drawer';
 import Table from '../../components/organisms/Table/Table';
 import type { ColumnType } from '../../components/organisms/Table/Table';
 import Icon from '../../components/atoms/Icon/Icon';
 import { useNavigate } from 'react-router-dom';
-import DetailedAttemptReport from './AttemptReport';
 import message from '../../utils/message';
 import Modal from '../../components/molecules/Modal/Modal';
 import Checkbox from '../../components/atoms/Checkbox/Checkbox';
@@ -98,6 +96,604 @@ export const formatTimeSpent = (attempt?: { timeTaken?: number } | null) => {
     return `${mins} min`;
   }
   return `${mins} min ${secs} sec`;
+};
+
+
+const getStudentId = (email: string): string => {
+  if (email === 'candidate@quizarena.com') return 'STU001';
+  let hash = 0;
+  for (let i = 0; i < email.length; i++) {
+    hash = email.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const idNum = Math.abs(hash % 100).toString().padStart(3, '0');
+  return `STU${idNum}`;
+};
+
+const CandidateResultModal: React.FC<{
+  attemptId: string;
+  open: boolean;
+  onClose: () => void;
+}> = ({ attemptId, open, onClose }) => {
+  const { data: reportResponse, isLoading, error } = useGetAttemptReportQuery(attemptId, { skip: !attemptId });
+  const [viewMode, setViewMode] = useState<'summary' | 'detailed'>('summary');
+  const [filterMode, setFilterMode] = useState<'all' | 'correct' | 'incorrect'>('all');
+
+  if (!open) return null;
+
+  if (isLoading) {
+    return (
+      <Modal open={open} onCancel={onClose} footer={null} width={500}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '60px 0' }}>
+          <Spinner size="large" tip="Loading report..." />
+        </div>
+      </Modal>
+    );
+  }
+
+  if (error || !reportResponse?.data) {
+    return (
+      <Modal open={open} onCancel={onClose} footer={null} width={500}>
+        <div style={{ padding: '20px' }}>
+          <Alert type="error" message="Failed to load results report" showIcon />
+        </div>
+      </Modal>
+    );
+  }
+
+  const report = reportResponse.data;
+  const quizTitle = typeof report.attempt.quizId === 'object' ? (report.attempt.quizId as any).title : 'Assessment';
+  
+  const formatMMSS = (sec?: number) => {
+    if (sec === undefined || sec === null) return '00:00';
+    const mins = Math.floor(sec / 60);
+    const secs = sec % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
+
+  const correctCount = report.summary.correctCount;
+  const skippedCount = report.details.filter((d: any) => !d.candidateAnswers || d.candidateAnswers.length === 0).length;
+  const incorrectCount = report.summary.totalQuestions - correctCount - skippedCount;
+  const percentage = report.summary.percentage;
+
+  let feedbackText = 'Good effort!';
+  let feedbackColor = '#d97706';
+  let feedbackBg = '#fef3c7';
+  let feedbackBorder = '1px solid rgba(217, 119, 6, 0.25)';
+  let scoreBoxBg = 'linear-gradient(180deg, var(--neutral-1) 0%, rgba(217, 119, 6, 0.08) 100%)';
+
+  if (percentage >= 90) {
+    feedbackText = 'Excellent!';
+    feedbackColor = '#16a34a';
+    feedbackBg = '#e2f9eb';
+    feedbackBorder = '1px solid rgba(22, 163, 74, 0.25)';
+    scoreBoxBg = 'linear-gradient(180deg, var(--neutral-1) 0%, rgba(22, 163, 74, 0.08) 100%)';
+  } else if (percentage >= 75) {
+    feedbackText = 'Great job!';
+    feedbackColor = '#16a34a';
+    feedbackBg = '#e2f9eb';
+    feedbackBorder = '1px solid rgba(22, 163, 74, 0.25)';
+    scoreBoxBg = 'linear-gradient(180deg, var(--neutral-1) 0%, rgba(22, 163, 74, 0.08) 100%)';
+  } else if (percentage >= 40) {
+    feedbackText = 'Good effort!';
+    feedbackColor = '#d97706';
+    feedbackBg = '#fef3c7';
+    feedbackBorder = '1px solid rgba(217, 119, 6, 0.25)';
+    scoreBoxBg = 'linear-gradient(180deg, var(--neutral-1) 0%, rgba(217, 119, 6, 0.08) 100%)';
+  } else {
+    feedbackText = 'Keep practicing!';
+    feedbackColor = '#dc2626';
+    feedbackBg = '#fee2e2';
+    feedbackBorder = '1px solid rgba(220, 38, 38, 0.25)';
+    scoreBoxBg = 'linear-gradient(180deg, var(--neutral-1) 0%, rgba(220, 38, 38, 0.08) 100%)';
+  }
+
+  const formatDateCompleted = (iso?: string) => {
+    if (!iso) return '';
+    const dateObj = new Date(iso);
+    if (isNaN(dateObj.getTime())) return '';
+    const day = dateObj.getDate();
+    const months = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    const month = months[dateObj.getMonth()];
+    return `Completed ${day} ${month} ${dateObj.getFullYear()}`;
+  };
+
+  if (viewMode === 'summary') {
+    return (
+      <Modal open={open} onCancel={onClose} footer={null} showHeader={false} width={560}>
+        <div style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border-color)', padding: '20px 24px 16px 24px', margin: '0 -24px 0 -24px' }}>
+            <div>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-heading)', margin: '0 0 4px 0' }}>
+                {quizTitle} — My Result
+              </h3>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                {getQuizCode(quizTitle)} · {formatDateCompleted(report.attempt.submittedAt)}
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              aria-label="Close Modal"
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--bg-surface-hover)',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--text-muted)',
+              }}
+            >
+              <Icon name="x-close" size={14} />
+            </button>
+          </div>
+
+          <div style={{ padding: '28px 24px 20px 24px', textAlign: 'center', borderBottom: '1px solid var(--border-color)', margin: '0 -24px 0 -24px', background: scoreBoxBg }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.75px' }}>
+              Total Score
+            </div>
+            <div style={{ margin: '8px 0', display: 'inline-flex', alignItems: 'baseline', justifyContent: 'center' }}>
+              <span style={{ fontSize: '56px', fontWeight: 800, color: 'var(--primary-2)', lineHeight: '1' }}>{report.attempt.score}</span>
+              <span style={{ fontSize: '24px', fontWeight: 600, color: 'var(--text-muted)', marginLeft: '4px' }}>/{report.summary.totalQuestions}</span>
+            </div>
+            <div>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '12px',
+                fontWeight: 700,
+                color: feedbackColor,
+                backgroundColor: feedbackBg,
+                border: feedbackBorder,
+                padding: '6px 14px',
+                borderRadius: '20px',
+              }}>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ color: feedbackColor }}
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 15 15" />
+                </svg>
+                {percentage}% · {feedbackText}
+              </span>
+            </div>
+          </div>
+
+          <div style={{ padding: '24px 0', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+            {[
+              { label: 'CORRECT', value: correctCount, color: '#16a34a' },
+              { label: 'INCORRECT', value: incorrectCount, color: '#ef4444' },
+              { label: 'SKIPPED', value: skippedCount, color: 'var(--text-muted)' },
+              { label: 'TIME SPENT', value: formatMMSS(report.attempt.timeTaken), color: 'var(--text-main)' }
+            ].map((stat, idx) => (
+              <div key={idx} style={{
+                backgroundColor: 'var(--neutral-1)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '10px',
+                padding: '16px 8px',
+                textAlign: 'center',
+              }}>
+                <div style={{ fontSize: '22px', fontWeight: 800, color: stat.color, marginBottom: '4px', lineHeight: '1.2' }}>
+                  {stat.value}
+                </div>
+                <div style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.5px' }}>
+                  {stat.label}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px 16px 24px', margin: '0 -24px -24px -24px', backgroundColor: 'var(--neutral-0)' }}>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500 }}>
+              Each correct answer = 1 mark · No negative marking
+            </span>
+            <Button
+              variant="primary"
+              onClick={() => setViewMode('detailed')}
+              style={{
+                backgroundColor: 'var(--primary-2)',
+                borderColor: 'var(--primary-2)',
+                color: '#ffffff',
+                fontWeight: 600,
+                fontSize: '12px',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '2px' }}>
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+              View Detailed Result
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
+  const filteredDetails = report.details.filter((q: any) => {
+    if (filterMode === 'correct') return q.isCorrect;
+    if (filterMode === 'incorrect') return !q.isCorrect;
+    return true;
+  });
+
+  return (
+    <Modal open={open} onCancel={onClose} footer={null} showHeader={false} width={800}>
+      <div style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', padding: '16px 24px', margin: '0 -24px 20px -24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <button
+              onClick={() => setViewMode('summary')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-surface)',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                height: '38px',
+              }}
+            >
+              <span style={{ fontSize: '16px', color: 'var(--text-muted)', lineHeight: 1 }}>←</span>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: '1.1' }}>
+                <span style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>My</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-main)', fontWeight: 700 }}>Result</span>
+              </div>
+            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-heading)', margin: 0, lineHeight: 1.2 }}>
+                {quizTitle} — Detailed View
+              </h3>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>
+                {report.candidate.name} · {getStudentId(report.candidate.email)} · Score: {report.attempt.score}/{report.summary.totalQuestions} ({percentage}%)
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div
+              onClick={() => setFilterMode(filterMode === 'correct' ? 'all' : 'correct')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '4px 12px 4px 6px',
+                borderRadius: '24px',
+                border: filterMode === 'correct' ? '1.5px solid #16a34a' : '1px solid rgba(22, 163, 74, 0.3)',
+                backgroundColor: filterMode === 'correct' ? '#e2f9eb' : 'transparent',
+                cursor: 'pointer',
+                userSelect: 'none',
+                transition: 'all 0.2s',
+                height: '32px',
+              }}
+            >
+              <span style={{
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                backgroundColor: '#16a34a',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '10px',
+                fontWeight: 700,
+              }}>
+                ✓
+              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1', alignItems: 'flex-start' }}>
+                <span style={{ fontSize: '12px', fontWeight: 800, color: '#16a34a' }}>{correctCount}</span>
+                <span style={{ fontSize: '8px', fontWeight: 600, color: 'rgba(22, 163, 74, 0.8)', textTransform: 'lowercase' }}>correct</span>
+              </div>
+            </div>
+
+            <div
+              onClick={() => setFilterMode(filterMode === 'incorrect' ? 'all' : 'incorrect')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '4px 12px 4px 6px',
+                borderRadius: '24px',
+                border: filterMode === 'incorrect' ? '1.5px solid #ef4444' : '1px solid rgba(239, 68, 68, 0.3)',
+                backgroundColor: filterMode === 'incorrect' ? '#fee2e2' : 'transparent',
+                cursor: 'pointer',
+                userSelect: 'none',
+                transition: 'all 0.2s',
+                height: '32px',
+              }}
+            >
+              <span style={{
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                backgroundColor: '#ef4444',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '10px',
+                fontWeight: 700,
+              }}>
+                ✗
+              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1', alignItems: 'flex-start' }}>
+                <span style={{ fontSize: '12px', fontWeight: 800, color: '#ef4444' }}>{incorrectCount}</span>
+                <span style={{ fontSize: '8px', fontWeight: 600, color: 'rgba(239, 68, 68, 0.8)', textTransform: 'lowercase' }}>incorrect</span>
+              </div>
+            </div>
+
+            <button
+              onClick={onClose}
+              aria-label="Close Modal"
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--bg-surface-hover)',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--text-muted)',
+                marginLeft: '8px',
+              }}
+            >
+              <Icon name="x-close" size={14} />
+            </button>
+          </div>
+        </div>
+
+        <div style={{
+          maxHeight: '60vh',
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px',
+          padding: '4px 24px 12px 24px',
+          margin: '0 -24px 0 -24px',
+        }}>
+          {filteredDetails.map((item: any, index: number) => {
+            const isQuestionCorrect = item.isCorrect;
+            return (
+              <div
+                key={index}
+                style={{
+                  border: isQuestionCorrect ? '1px solid var(--border-color)' : '1px solid var(--danger-1)',
+                  backgroundColor: isQuestionCorrect ? 'var(--bg-surface)' : 'var(--danger-0)',
+                  borderRadius: '12px',
+                  padding: '20px 24px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  gap: '16px',
+                  transition: 'all 0.2s',
+                }}
+              >
+                <div style={{ display: 'flex', gap: '16px', flexGrow: 1 }}>
+                  {/* Question ID */}
+                  <span style={{
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    color: 'var(--text-muted)',
+                    width: '20px',
+                    flexShrink: 0,
+                    textAlign: 'right',
+                    marginTop: '2px',
+                  }}>
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+
+                  {/* Question Content */}
+                  <div style={{ flexGrow: 1 }}>
+                    <div style={{
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      color: 'var(--text-heading)',
+                      marginBottom: '16px',
+                      lineHeight: '1.4',
+                    }}>
+                      {item.question}
+                    </div>
+
+                    {/* Options Grid */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: '12px 24px',
+                    }}>
+                      {item.options.map((opt: string, optIdx: number) => {
+                        const isSelected = item.candidateAnswers.includes(optIdx);
+                        const isCorrectAnswer = item.correctAnswers.includes(optIdx);
+
+                        let labelColor = 'var(--text-main)';
+                        let suffix = '';
+                        let radio = null;
+
+                        if (isQuestionCorrect) {
+                          if (isSelected) {
+                            labelColor = '#16a34a';
+                            radio = (
+                              <span style={{
+                                width: '16px',
+                                height: '16px',
+                                borderRadius: '50%',
+                                border: '2px solid #16a34a',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                              }}>
+                                <span style={{
+                                  width: '8px',
+                                  height: '8px',
+                                  borderRadius: '50%',
+                                  backgroundColor: '#16a34a',
+                                }} />
+                              </span>
+                            );
+                          } else {
+                            radio = (
+                              <span style={{
+                                width: '16px',
+                                height: '16px',
+                                borderRadius: '50%',
+                                border: '2px solid var(--neutral-4)',
+                                display: 'inline-block',
+                                flexShrink: 0,
+                              }} />
+                            );
+                          }
+                        } else {
+                          // Question is incorrect
+                          if (isSelected) {
+                            labelColor = '#ef4444';
+                            suffix = ' - Your answer';
+                            radio = (
+                              <span style={{
+                                width: '16px',
+                                height: '16px',
+                                borderRadius: '50%',
+                                border: '2px solid #ef4444',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                              }}>
+                                <span style={{
+                                  width: '8px',
+                                  height: '8px',
+                                  borderRadius: '50%',
+                                  backgroundColor: '#ef4444',
+                                }} />
+                              </span>
+                            );
+                          } else if (isCorrectAnswer) {
+                            labelColor = '#16a34a';
+                            suffix = ' - Correct';
+                            radio = (
+                              <span style={{
+                                width: '16px',
+                                height: '16px',
+                                borderRadius: '50%',
+                                border: '2px solid #16a34a',
+                                display: 'inline-block',
+                                flexShrink: 0,
+                              }} />
+                            );
+                          } else {
+                            radio = (
+                              <span style={{
+                                width: '16px',
+                                height: '16px',
+                                borderRadius: '50%',
+                                border: '2px solid var(--neutral-4)',
+                                display: 'inline-block',
+                                flexShrink: 0,
+                              }} />
+                            );
+                          }
+                        }
+
+                        return (
+                          <div
+                            key={optIdx}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              fontSize: '13px',
+                              color: labelColor,
+                              fontWeight: (isSelected || isCorrectAnswer) ? 600 : 400,
+                            }}
+                          >
+                            {radio}
+                            <span>
+                              {opt}
+                              {suffix && (
+                                <span style={{
+                                  fontSize: '11px',
+                                  fontWeight: 500,
+                                  opacity: 0.85,
+                                  marginLeft: '4px',
+                                }}>
+                                  {suffix}
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status Icon Column */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', paddingTop: '2px' }}>
+                  {isQuestionCorrect ? (
+                    <span style={{
+                      width: '22px',
+                      height: '22px',
+                      borderRadius: '50%',
+                      backgroundColor: '#e2f9eb',
+                      color: '#16a34a',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      border: '1px solid rgba(22, 163, 74, 0.25)',
+                    }}>
+                      ✓
+                    </span>
+                  ) : (
+                    <span style={{
+                      width: '22px',
+                      height: '22px',
+                      borderRadius: '50%',
+                      backgroundColor: '#fee2e2',
+                      color: '#ef4444',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      border: '1px solid rgba(220, 38, 38, 0.25)',
+                    }}>
+                      ✗
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </Modal>
+  );
 };
 
 export const CandidateDashboard: React.FC = () => {
@@ -328,19 +924,17 @@ export const CandidateDashboard: React.FC = () => {
         />
       </Card>
 
-      {/* Assessment Attempt Report Drawer */}
-      <Drawer
-        title={<span style={{ fontWeight: 700 }}>Assessment Attempt Report</span>}
-        width={720}
-        onClose={() => {
-          setIsDrawerOpen(false);
-          setSelectedAttemptId(null);
-        }}
-        open={isDrawerOpen}
-        destroyOnClose
-      >
-        {selectedAttemptId && <DetailedAttemptReport attemptId={selectedAttemptId} />}
-      </Drawer>
+      {/* Assessment Attempt Report Modal Popup */}
+      {selectedAttemptId && (
+        <CandidateResultModal
+          attemptId={selectedAttemptId}
+          open={isDrawerOpen}
+          onClose={() => {
+            setIsDrawerOpen(false);
+            setSelectedAttemptId(null);
+          }}
+        />
+      )}
 
       {/* Pre-test Instructions & Consent Modal */}
       {selectedQuizForInstructions && (

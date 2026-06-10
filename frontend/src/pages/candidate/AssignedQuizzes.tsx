@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useGetQuizzesQuery, useStartAttemptMutation } from '../../services/api';
 import type { Quiz } from '../../services/api';
-import Card from '../../components/molecules/Card/Card';
 import Button from '../../components/atoms/Button/Button';
 import Tag from '../../components/atoms/Tag/Tag';
 import Spinner from '../../components/atoms/Spinner/Spinner';
