@@ -148,6 +148,19 @@ export async function saveAnswers(
       attempt.score = await computeScore(quiz._id.toString(), attempt.answers);
       await attempt.save();
 
+      // Check if all assigned participants have submitted
+      const participants = await ParticipantModel.find({ quizId: quiz._id });
+      const participantIds = participants.map(p => p.userId.toString());
+      const submittedAttempts = await AttemptModel.countDocuments({
+        quizId: quiz._id,
+        candidateId: { $in: participantIds },
+        status: { $in: ['Submitted', 'AutoSubmitted'] }
+      });
+      if (submittedAttempts >= participants.length) {
+        quiz.status = 'Completed';
+        await quiz.save();
+      }
+
       res.status(200).json({
         success: true,
         message: 'Time expired. Quiz has been auto-submitted.',
@@ -220,6 +233,19 @@ export async function submitAttempt(
     attempt.status = 'Submitted';
 
     await attempt.save();
+
+    // Check if all assigned participants have submitted
+    const participants = await ParticipantModel.find({ quizId: quiz._id });
+    const participantIds = participants.map(p => p.userId.toString());
+    const submittedAttempts = await AttemptModel.countDocuments({
+      quizId: quiz._id,
+      candidateId: { $in: participantIds },
+      status: { $in: ['Submitted', 'AutoSubmitted'] }
+    });
+    if (submittedAttempts >= participants.length) {
+      quiz.status = 'Completed';
+      await quiz.save();
+    }
 
     res.status(200).json({
       success: true,

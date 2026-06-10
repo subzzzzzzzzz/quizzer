@@ -17,6 +17,11 @@ import participantRouter from './modules/participants/participant.routes';
 import attemptRouter from './modules/attempts/attempt.routes';
 import analyticsRouter from './modules/analytics/analytics.routes';
 import { swaggerDocument } from './swagger';
+import UserModel from './modules/users/user.model';
+import QuizModel from './modules/quizzes/quiz.model';
+import QuestionModel from './modules/questions/question.model';
+import ParticipantModel from './modules/participants/participant.model';
+import AttemptModel from './modules/attempts/attempt.model';
 
 const app = express();
 
@@ -82,8 +87,49 @@ app.use(`${apiPrefix}/attempts`, attemptRouter);
 app.use(`${apiPrefix}/analytics`, analyticsRouter);
 
 // Swagger JSON endpoint
-app.get(`${apiPrefix}/swagger.json`, (_req, res) => {
-  res.json(swaggerDocument);
+app.get(`${apiPrefix}/swagger.json`, async (_req, res) => {
+  try {
+    const instructorUser = await UserModel.findOne({ email: 'priya@quizarena.com' });
+    const candidate1 = await UserModel.findOne({ email: 'sara@quizarena.com' });
+    const candidate2 = await UserModel.findOne({ email: 'rohan@quizarena.com' });
+
+    const completedQuiz = await QuizModel.findOne({ title: 'CSS Advanced Selectors' });
+    const liveQuiz = await QuizModel.findOne({ title: 'React Hook Mechanics' });
+    const scheduledQuiz = await QuizModel.findOne({ title: 'NodeJS Event Loop' });
+    const draftQuiz = await QuizModel.findOne({ title: 'TypeScript Generic Constraints' });
+
+    const cssQuestion = completedQuiz ? await QuestionModel.findOne({ quizId: completedQuiz._id }) : null;
+    const reactQuestion = liveQuiz ? await QuestionModel.findOne({ quizId: liveQuiz._id }) : null;
+
+    const cssParticipant = completedQuiz && candidate1 ? await ParticipantModel.findOne({ quizId: completedQuiz._id, userId: candidate1._id }) : null;
+    const cssAttempt = completedQuiz && candidate1 ? await AttemptModel.findOne({ quizId: completedQuiz._id, candidateId: candidate1._id }) : null;
+
+    const idsMap: Record<string, string> = {
+      CSS_QUIZ_ID: completedQuiz?._id?.toString() || '60d0fe4f5311236168a109cb',
+      REACT_QUIZ_ID: liveQuiz?._id?.toString() || '60d0fe4f5311236168a109cc',
+      NODE_QUIZ_ID: scheduledQuiz?._id?.toString() || '60d0fe4f5311236168a109cd',
+      TS_QUIZ_ID: draftQuiz?._id?.toString() || '60d0fe4f5311236168a109ce',
+
+      CANDIDATE_1_ID: candidate1?._id?.toString() || '60d0fe4f5311236168a109cf',
+      CANDIDATE_2_ID: candidate2?._id?.toString() || '60d0fe4f5311236168a109d0',
+      INSTRUCTOR_ID: instructorUser?._id?.toString() || '60d0fe4f5311236168a109ca',
+
+      CSS_QUESTION_ID: cssQuestion?._id?.toString() || '60d0fe4f5311236168a109d1',
+      REACT_QUESTION_ID: reactQuestion?._id?.toString() || '60d0fe4f5311236168a109d2',
+
+      CSS_PARTICIPANT_ID: cssParticipant?._id?.toString() || '60d0fe4f5311236168a109d3',
+      CSS_ATTEMPT_ID: cssAttempt?._id?.toString() || '60d0fe4f5311236168a109d4',
+    };
+
+    let docStr = JSON.stringify(swaggerDocument);
+    for (const [key, value] of Object.entries(idsMap)) {
+      docStr = docStr.split(key).join(value);
+    }
+
+    res.json(JSON.parse(docStr));
+  } catch (error) {
+    res.json(swaggerDocument);
+  }
 });
 
 // Swagger UI Docs HTML page
@@ -118,7 +164,36 @@ const docsHtml = `
         plugins: [
           SwaggerUIBundle.plugins.DownloadUrl
         ],
-        layout: "BaseLayout"
+        requestInterceptor: function(request) {
+          request.credentials = 'include';
+          return request;
+        },
+        responseInterceptor: function(response) {
+          if ((response.url.includes('/auth/login') || response.url.includes('/auth/signup')) && (response.status === 200 || response.status === 201)) {
+            setTimeout(function() {
+              if (window.ui && window.ui.authActions) {
+                window.ui.authActions.authorize({
+                  cookieAuth: {
+                    name: "cookieAuth",
+                    schema: {
+                      type: "apiKey",
+                      in: "cookie",
+                      name: "token"
+                    },
+                    value: "authenticated"
+                  }
+                });
+              }
+            }, 50);
+          } else if (response.url.includes('/auth/logout') && response.status === 200) {
+            setTimeout(function() {
+              if (window.ui && window.ui.authActions) {
+                window.ui.authActions.logout(["cookieAuth"]);
+              }
+            }, 50);
+          }
+          return response;
+        }
       });
     };
   </script>

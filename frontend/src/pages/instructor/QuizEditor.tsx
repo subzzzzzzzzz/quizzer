@@ -547,16 +547,19 @@ export const QuizEditor: React.FC = () => {
               message={
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: '12px' }}>
                   <span>
-                    <strong>Status: Draft.</strong> To schedule and publish this quiz, you must add at least <strong>1 question</strong> and <strong>1 participant</strong>.
+                    <strong>Status: Draft.</strong>
+                    {user?.role !== 'admin' && (
+                      <> To schedule and publish this quiz, you must add at least <strong>1 question</strong> and <strong>1 participant</strong>.</>
+                    )}
                   </span>
-                  {quiz.questionCount && quiz.questionCount > 0 && quiz.participantCount && quiz.participantCount > 0 && quiz.startTime && (
+                  {user?.role !== 'admin' && quiz.questionCount && quiz.questionCount > 0 && quiz.participantCount && quiz.participantCount > 0 && quiz.startTime && (
                     <Button variant="primary" size="small" onClick={handlePublish} loading={isPublishing} style={{ backgroundColor: 'var(--secondary-2)', borderColor: 'var(--secondary-2)' }}>
                       Publish Quiz
                     </Button>
                   )}
                 </div>
               }
-              type={quiz.questionCount && quiz.questionCount > 0 && quiz.participantCount && quiz.participantCount > 0 ? 'success' : 'warning'}
+              type={user?.role === 'admin' ? 'info' : (quiz.questionCount && quiz.questionCount > 0 && quiz.participantCount && quiz.participantCount > 0 ? 'success' : 'warning')}
               showIcon
             />
           )}

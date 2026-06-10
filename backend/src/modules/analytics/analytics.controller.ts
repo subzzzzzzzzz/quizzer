@@ -34,11 +34,17 @@ export async function getAttemptReport(
     }
 
     const quiz = await QuizModel.findById(attempt.quizId);
-    if (userRole === 'instructor' && quiz && quiz.instructorId.toString() !== userId?.toString()) {
-      const creator = await UserModel.findById(quiz.instructorId);
-      if (!creator || creator.role !== 'admin') {
-        next(new ForbiddenError('You do not have permission to view results for this quiz'));
-        return;
+    if (userRole === 'instructor' && quiz) {
+      const hasCompletedAttempts = !!(await AttemptModel.exists({
+        quizId: quiz._id,
+        status: { $in: ['Submitted', 'AutoSubmitted'] }
+      }));
+      if (quiz.status !== 'Completed' && !hasCompletedAttempts && quiz.instructorId.toString() !== userId?.toString()) {
+        const creator = await UserModel.findById(quiz.instructorId);
+        if (!creator || creator.role !== 'admin') {
+          next(new ForbiddenError('You do not have permission to view results for this quiz'));
+          return;
+        }
       }
     }
 
@@ -119,7 +125,11 @@ export async function getQuizAnalytics(
     }
 
     // Validate permission
-    if (userRole === 'instructor' && quiz.instructorId.toString() !== userId?.toString()) {
+    const hasCompletedAttempts = !!(await AttemptModel.exists({
+      quizId: quiz._id,
+      status: { $in: ['Submitted', 'AutoSubmitted'] }
+    }));
+    if (userRole === 'instructor' && quiz.status !== 'Completed' && !hasCompletedAttempts && quiz.instructorId.toString() !== userId?.toString()) {
       const creator = await UserModel.findById(quiz.instructorId);
       if (!creator || creator.role !== 'admin') {
         next(new ForbiddenError('You do not have permission to access these analytics'));
@@ -230,10 +240,15 @@ export async function getGlobalAnalytics(
     if (userRole === 'instructor') {
       const admins = await UserModel.find({ role: 'admin' }).select('_id');
       const adminIds = admins.map(a => a._id);
+      const quizzesWithAttempts = await AttemptModel.distinct('quizId', {
+        status: { $in: ['Submitted', 'AutoSubmitted'] }
+      });
       quizFilter = {
         $or: [
           { instructorId: userId },
-          { instructorId: { $in: adminIds } }
+          { instructorId: { $in: adminIds } },
+          { status: 'Completed' },
+          { _id: { $in: quizzesWithAttempts } }
         ]
       };
     }

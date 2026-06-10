@@ -213,7 +213,7 @@ describe('Analytics Module', () => {
         quizId: quiz._id,
         candidateId: new Types.ObjectId(),
         startedAt: new Date(),
-        status: 'Submitted',
+        status: 'InProgress',
       });
       const req = { params: { attemptId: attempt._id.toString() }, user: { _id: instructor2._id.toString(), role: 'instructor' } } as any;
       const next = jest.fn();
@@ -420,6 +420,51 @@ describe('Analytics Module', () => {
       expect(responseData.participants[0].status).toBe('NotStarted');
       expect(responseData.participants[0].score).toBe(0);
       expect(responseData.participants[0].timeTaken).toBeNull();
+    });
+
+    it('getQuizAnalytics should allow instructor to access analytics of a completed quiz created by another instructor', async () => {
+      const instructor1 = await createMockUser('instructor');
+      const instructor2 = await createMockUser('instructor');
+      const candidate = await createMockUser('candidate');
+
+      const quiz = await QuizModel.create({
+        title: 'Instructor 1 Completed Quiz',
+        duration: 30,
+        instructorId: instructor1._id,
+        status: 'Completed',
+      });
+
+      await QuestionModel.create({
+        quizId: quiz._id,
+        question: 'Q1',
+        options: ['a', 'b', 'c', 'd'],
+        correctAnswers: [0],
+      });
+
+      await ParticipantModel.create({ quizId: quiz._id, userId: candidate._id });
+
+      await AttemptModel.create({
+        quizId: quiz._id,
+        candidateId: candidate._id,
+        startedAt: new Date(),
+        submittedAt: new Date(),
+        score: 1,
+        status: 'Submitted',
+      });
+
+      const req = {
+        params: { quizId: quiz._id.toString() },
+        user: { _id: instructor2._id.toString(), role: 'instructor' },
+      } as any;
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      } as any;
+      const next = jest.fn();
+
+      await getQuizAnalytics(req, res, next);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalled();
     });
   });
 });

@@ -201,4 +201,35 @@ describe('QuizEditor component', () => {
       emails: ['john@cand.com'],
     });
   });
+
+  it('does not display instructions or publish button for admin role in draft status', () => {
+    renderWithProviders(
+      <Routes>
+        <Route path="/quizzes/:id/edit" element={<QuizEditor />} />
+      </Routes>,
+      {
+        initialEntries: ['/quizzes/quiz-1/edit'],
+        preloadedState: {
+          auth: {
+            user: {
+              id: 'admin-1',
+              name: 'Admin User',
+              email: 'admin@test.com',
+              role: 'admin',
+              status: 'active',
+            },
+            isAuthenticated: true,
+            isInitialized: true,
+          },
+        },
+      }
+    );
+
+    // Verify it shows Status: Draft.
+    expect(screen.getByText(/Status: Draft\./i)).toBeInTheDocument();
+    // Verify it does NOT show the schedule instructions
+    expect(screen.queryByText(/To schedule and publish this quiz/i)).not.toBeInTheDocument();
+    // Verify it does NOT show the publish button
+    expect(screen.queryByRole('button', { name: /Publish Quiz/i })).not.toBeInTheDocument();
+  });
 });

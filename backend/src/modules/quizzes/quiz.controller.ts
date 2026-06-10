@@ -100,11 +100,17 @@ export async function getQuizzes(
 
     if (userRole === 'instructor') {
       // Instructors see quizzes they created OR quizzes created by admin users
+      // OR quizzes that are Completed OR quizzes with completed/submitted attempts
       const admins = await UserModel.find({ role: 'admin' }).select('_id');
       const adminIds = admins.map((a) => a._id);
+      const quizzesWithAttempts = await AttemptModel.distinct('quizId', {
+        status: { $in: ['Submitted', 'AutoSubmitted'] }
+      });
       filter.$or = [
         { instructorId: userId },
-        { instructorId: { $in: adminIds } }
+        { instructorId: { $in: adminIds } },
+        { status: 'Completed' },
+        { _id: { $in: quizzesWithAttempts } }
       ];
     } else if (userRole === 'candidate') {
       // Candidates see quizzes they are assigned to
@@ -124,6 +130,10 @@ export async function getQuizzes(
     for (const quiz of quizzes) {
       const qCount = await QuestionModel.countDocuments({ quizId: quiz._id });
       const pCount = await ParticipantModel.countDocuments({ quizId: quiz._id });
+      const completedAttemptsCount = await AttemptModel.countDocuments({
+        quizId: quiz._id,
+        status: { $in: ['Submitted', 'AutoSubmitted'] }
+      });
       
       let candidateAttempt = null;
       if (userRole === 'candidate') {
@@ -142,6 +152,7 @@ export async function getQuizzes(
         ...quiz.toObject(),
         questionCount: qCount,
         participantCount: pCount,
+        completedAttemptsCount,
         candidateAttempt,
       });
     }

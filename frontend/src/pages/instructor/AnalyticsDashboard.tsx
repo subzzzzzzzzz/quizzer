@@ -75,7 +75,9 @@ export const AnalyticsDashboard: React.FC = () => {
   const { data: quizzesResponse, isLoading, error } = useGetQuizzesQuery();
   const quizzes = quizzesResponse?.data || [];
 
-  const completedQuizzes = quizzes.filter(q => q.status === 'Completed');
+  const completedQuizzes = quizzes.filter(
+    (q) => q.status === 'Completed' || (q.completedAttemptsCount && q.completedAttemptsCount > 0)
+  );
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
   const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
   const [searchText, setSearchText] = useState('');

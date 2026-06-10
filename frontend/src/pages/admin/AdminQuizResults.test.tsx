@@ -153,6 +153,30 @@ describe('AdminQuizResults component', () => {
     expect(screen.getByText('What is JS?')).toBeInTheDocument();
   });
 
+  it('does not display ACTION column and View Details button for admin user', () => {
+    const preloadedState = {
+      auth: {
+        user: {
+          id: 'admin-id',
+          name: 'System Admin',
+          email: 'admin@test.com',
+          role: 'admin' as const,
+          status: 'active' as const,
+        },
+        isAuthenticated: true,
+        isInitialized: true,
+      },
+      theme: { mode: 'light' as const }
+    };
+    renderWithProviders(<AdminQuizResults quizId="quiz-123" />, { preloadedState });
+
+    // Verify 'View Details' button is not available
+    const viewDetailsButtons = screen.queryAllByRole('button', { name: 'View Details' });
+    expect(viewDetailsButtons.length).toBe(0);
+    // Verify ACTION column header is not present
+    expect(screen.queryByText('ACTION')).not.toBeInTheDocument();
+  });
+
   it('calls onClose when close button is clicked', () => {
     const mockOnClose = vi.fn();
     renderWithProviders(<AdminQuizResults quizId="quiz-123" onClose={mockOnClose} />);

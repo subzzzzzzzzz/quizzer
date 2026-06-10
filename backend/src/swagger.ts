@@ -29,25 +29,26 @@ export const swaggerDocument = {
       "User": {
         "type": "object",
         "properties": {
-          "id": { "type": "string", "example": "60d0fe4f5311236168a109ca" },
-          "name": { "type": "string", "example": "John Doe" },
-          "email": { "type": "string", "format": "email", "example": "john@example.com" },
-          "role": { "type": "string", "enum": ["admin", "instructor", "candidate"], "example": "candidate" },
+          "id": { "type": "string", "example": "INSTRUCTOR_ID" },
+          "name": { "type": "string", "example": "Priya Sharma" },
+          "email": { "type": "string", "format": "email", "example": "priya@quizarena.com" },
+          "role": { "type": "string", "enum": ["admin", "instructor", "candidate"], "example": "instructor" },
           "status": { "type": "string", "enum": ["active", "inactive"], "example": "active" }
         }
       },
       "Quiz": {
         "type": "object",
         "properties": {
-          "_id": { "type": "string", "example": "60d0fe4f5311236168a109cb" },
-          "title": { "type": "string", "example": "React 101" },
-          "description": { "type": "string", "example": "A quiz on React basics" },
-          "duration": { "type": "number", "example": 30 },
+          "_id": { "type": "string", "example": "CSS_QUIZ_ID" },
+          "title": { "type": "string", "example": "CSS Advanced Selectors" },
+          "description": { "type": "string", "example": "Test your advanced knowledge of combinators, pseudo-classes, and specificity calculations." },
+          "duration": { "type": "number", "example": 10 },
           "questionType": { "type": "string", "enum": ["single", "multi"], "example": "single" },
-          "instructorId": { "type": "string", "example": "60d0fe4f5311236168a109ca" },
-          "status": { "type": "string", "enum": ["Draft", "Scheduled", "Live", "Completed", "Cancelled", "Expired"], "example": "Draft" },
-          "startTime": { "type": "string", "format": "date-time", "nullable": true, "example": "2026-06-15T10:00:00Z" },
-          "endTime": { "type": "string", "format": "date-time", "nullable": true, "example": "2026-06-15T12:00:00Z" },
+          "instructorId": { "type": "string", "example": "INSTRUCTOR_ID" },
+          "status": { "type": "string", "enum": ["Draft", "Scheduled", "Live", "Completed", "Cancelled", "Expired"], "example": "Completed" },
+          "startTime": { "type": "string", "format": "date-time", "nullable": true, "example": "2026-06-10T21:00:00.000Z" },
+          "endTime": { "type": "string", "format": "date-time", "nullable": true, "example": "2026-06-10T22:00:00.000Z" },
+          "completedAttemptsCount": { "type": "number", "example": 2 },
           "createdAt": { "type": "string", "format": "date-time" },
           "updatedAt": { "type": "string", "format": "date-time" }
         }
@@ -55,39 +56,39 @@ export const swaggerDocument = {
       "Question": {
         "type": "object",
         "properties": {
-          "_id": { "type": "string", "example": "60d0fe4f5311236168a109cc" },
-          "quizId": { "type": "string", "example": "60d0fe4f5311236168a109cb" },
-          "question": { "type": "string", "example": "What is JSX?" },
+          "_id": { "type": "string", "example": "CSS_QUESTION_ID" },
+          "quizId": { "type": "string", "example": "CSS_QUIZ_ID" },
+          "question": { "type": "string", "example": "Which selector matches an element that is the first child of its parent?" },
           "options": {
             "type": "array",
             "items": { "type": "string" },
             "minItems": 4,
             "maxItems": 4,
-            "example": ["A syntax extension", "A JavaScript library", "A database system", "CSS in JS"]
+            "example": [":first-of-type", ":first-child", ":only-child", ":nth-child(0)"]
           },
           "correctAnswers": {
             "type": "array",
             "items": { "type": "integer", "minimum": 0, "maximum": 3 },
             "description": "Indexes of correct options. Only exposed to admins and instructors.",
-            "example": [0]
+            "example": [1]
           }
         }
       },
       "Participant": {
         "type": "object",
         "properties": {
-          "_id": { "type": "string", "example": "60d0fe4f5311236168a109cd" },
-          "quizId": { "type": "string", "example": "60d0fe4f5311236168a109cb" },
+          "_id": { "type": "string", "example": "CSS_PARTICIPANT_ID" },
+          "quizId": { "type": "string", "example": "CSS_QUIZ_ID" },
           "userId": {
             "oneOf": [
-              { "type": "string" },
+              { "type": "string", "example": "CANDIDATE_1_ID" },
               {
                 "type": "object",
                 "properties": {
-                  "_id": { "type": "string" },
-                  "name": { "type": "string" },
-                  "email": { "type": "string", "format": "email" },
-                  "status": { "type": "string" }
+                  "_id": { "type": "string", "example": "CANDIDATE_1_ID" },
+                  "name": { "type": "string", "example": "Sara Rauf" },
+                  "email": { "type": "string", "format": "email", "example": "sara@quizarena.com" },
+                  "status": { "type": "string", "example": "active" }
                 }
               }
             ]
@@ -98,14 +99,14 @@ export const swaggerDocument = {
       "Attempt": {
         "type": "object",
         "properties": {
-          "_id": { "type": "string", "example": "60d0fe4f5311236168a109ce" },
-          "quizId": { "type": "string", "example": "60d0fe4f5311236168a109cb" },
-          "candidateId": { "type": "string", "example": "60d0fe4f5311236168a109cf" },
-          "startedAt": { "type": "string", "format": "date-time" },
-          "submittedAt": { "type": "string", "format": "date-time", "nullable": true },
-          "status": { "type": "string", "enum": ["InProgress", "Submitted", "AutoSubmitted"], "example": "InProgress" },
-          "score": { "type": "number", "example": 8 },
-          "timeTaken": { "type": "number", "description": "Time taken in seconds", "example": 450 },
+          "_id": { "type": "string", "example": "CSS_ATTEMPT_ID" },
+          "quizId": { "type": "string", "example": "CSS_QUIZ_ID" },
+          "candidateId": { "type": "string", "example": "CANDIDATE_1_ID" },
+          "startedAt": { "type": "string", "format": "date-time", "example": "2026-06-10T21:05:00.000Z" },
+          "submittedAt": { "type": "string", "format": "date-time", "nullable": true, "example": "2026-06-10T21:10:00.000Z" },
+          "status": { "type": "string", "enum": ["InProgress", "Submitted", "AutoSubmitted"], "example": "Submitted" },
+          "score": { "type": "number", "example": 2 },
+          "timeTaken": { "type": "number", "description": "Time taken in seconds", "example": 300 },
           "answers": {
             "type": "object",
             "additionalProperties": {
@@ -113,7 +114,7 @@ export const swaggerDocument = {
               "items": { "type": "integer" }
             },
             "description": "Map of Question IDs to candidate's selected option indexes",
-            "example": { "60d0fe4f5311236168a109cc": [0] }
+            "example": { "CSS_QUESTION_ID": [1] }
           }
         }
       },
@@ -193,8 +194,38 @@ export const swaggerDocument = {
                 "type": "object",
                 "required": ["email", "password"],
                 "properties": {
-                  "email": { "type": "string", "format": "email", "example": "john@example.com" },
-                  "password": { "type": "string", "example": "securepassword123" }
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string" }
+                }
+              },
+              "examples": {
+                "admin": {
+                  "summary": "Admin Login (admin@quizarena.com)",
+                  "value": {
+                    "email": "admin@quizarena.com",
+                    "password": "Password123"
+                  }
+                },
+                "instructor": {
+                  "summary": "Instructor Login (priya@quizarena.com)",
+                  "value": {
+                    "email": "priya@quizarena.com",
+                    "password": "Password123"
+                  }
+                },
+                "candidate1": {
+                  "summary": "Candidate Login 1 (sara@quizarena.com)",
+                  "value": {
+                    "email": "sara@quizarena.com",
+                    "password": "Password123"
+                  }
+                },
+                "candidate2": {
+                  "summary": "Candidate Login 2 (rohan@quizarena.com)",
+                  "value": {
+                    "email": "rohan@quizarena.com",
+                    "password": "Password123"
+                  }
                 }
               }
             }
@@ -436,7 +467,7 @@ export const swaggerDocument = {
                                 "type": "object",
                                 "nullable": true,
                                 "properties": {
-                                  "id": { "type": "string", "example": "60d0fe4f5311236168a109ce" },
+                                  "id": { "type": "string", "example": "CSS_ATTEMPT_ID" },
                                   "status": { "type": "string", "enum": ["InProgress", "Submitted", "AutoSubmitted"] },
                                   "score": { "type": "number", "example": 7 }
                                 }
@@ -649,7 +680,7 @@ export const swaggerDocument = {
                 "type": "object",
                 "required": ["quizId", "question", "options", "correctAnswers"],
                 "properties": {
-                  "quizId": { "type": "string", "example": "60d0fe4f5311236168a109cb" },
+                  "quizId": { "type": "string", "example": "TS_QUIZ_ID" },
                   "question": { "type": "string", "example": "What is the output of typeof null?" },
                   "options": {
                     "type": "array",
@@ -804,7 +835,7 @@ export const swaggerDocument = {
                 "type": "object",
                 "required": ["quizId", "questions"],
                 "properties": {
-                  "quizId": { "type": "string", "example": "60d0fe4f5311236168a109cb" },
+                  "quizId": { "type": "string", "example": "TS_QUIZ_ID" },
                   "questions": {
                     "type": "array",
                     "items": {
@@ -891,11 +922,11 @@ export const swaggerDocument = {
                 "type": "object",
                 "required": ["quizId", "emails"],
                 "properties": {
-                  "quizId": { "type": "string", "example": "60d0fe4f5311236168a109cb" },
+                  "quizId": { "type": "string", "example": "TS_QUIZ_ID" },
                   "emails": {
                     "type": "array",
                     "items": { "type": "string" },
-                    "example": ["candidate1@example.com", "candidate2@example.com"]
+                    "example": ["sara@quizarena.com", "rohan@quizarena.com"]
                   }
                 }
               }
@@ -971,7 +1002,7 @@ export const swaggerDocument = {
                 "type": "object",
                 "required": ["quizId"],
                 "properties": {
-                  "quizId": { "type": "string", "example": "60d0fe4f5311236168a109cb" }
+                  "quizId": { "type": "string", "example": "REACT_QUIZ_ID" }
                 }
               }
             }
@@ -1010,11 +1041,11 @@ export const swaggerDocument = {
                 "type": "object",
                 "required": ["attemptId", "answers"],
                 "properties": {
-                  "attemptId": { "type": "string", "example": "60d0fe4f5311236168a109ce" },
+                  "attemptId": { "type": "string", "example": "CSS_ATTEMPT_ID" },
                   "answers": {
                     "type": "object",
                     "additionalProperties": { "type": "array", "items": { "type": "integer" } },
-                    "example": { "60d0fe4f5311236168a109cc": [0, 1] }
+                    "example": { "CSS_QUESTION_ID": [0, 1] }
                   }
                 }
               }
@@ -1052,11 +1083,11 @@ export const swaggerDocument = {
                 "type": "object",
                 "required": ["attemptId"],
                 "properties": {
-                  "attemptId": { "type": "string", "example": "60d0fe4f5311236168a109ce" },
+                  "attemptId": { "type": "string", "example": "CSS_ATTEMPT_ID" },
                   "answers": {
                     "type": "object",
                     "additionalProperties": { "type": "array", "items": { "type": "integer" } },
-                    "example": { "60d0fe4f5311236168a109cc": [0] }
+                    "example": { "CSS_QUESTION_ID": [0] }
                   }
                 }
               }

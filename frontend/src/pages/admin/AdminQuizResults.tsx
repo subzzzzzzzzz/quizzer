@@ -5,9 +5,11 @@ import type { ColumnType } from '../../components/organisms/Table/Table';
 import Input from '../../components/atoms/Input/Input';
 import Spinner from '../../components/atoms/Spinner/Spinner';
 import Button from '../../components/atoms/Button/Button';
-import Drawer from '../../components/organisms/Drawer/Drawer';
+import Modal from '../../components/molecules/Modal/Modal';
 import Alert from '../../components/atoms/Alert/Alert';
 import Icon from '../../components/atoms/Icon/Icon';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../store';
 
 interface AdminQuizResultsProps {
   quizId: string;
@@ -27,6 +29,9 @@ interface ParticipantDetail {
 }
 
 export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onClose }) => {
+  const { user } = useSelector((state: RootState) => state.auth);
+  const isAdmin = user?.role === 'admin';
+
   const [searchText, setSearchText] = useState('');
   const [selectedAttemptId, setSelectedAttemptId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -145,7 +150,7 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
       })
     : 'N/A';
 
-  const columns: ColumnType<ParticipantDetail>[] = [
+  const baseColumns: ColumnType<ParticipantDetail>[] = [
     {
       title: 'STU. ID',
       dataIndex: 'seqId',
@@ -227,11 +232,15 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
         const pct = Math.round((record.score / maxScore) * 100);
         return <span style={{ color: '#475569', fontWeight: 600, fontSize: '12px' }}>{pct}%</span>;
       }
-    },
+    }
+  ];
+
+  const columns = isAdmin ? baseColumns : [
+    ...baseColumns,
     {
       title: 'ACTION',
       key: 'action',
-      render: (_, record) => (
+      render: (_, record: ParticipantDetail) => (
         <Button
           size="small"
           disabled={!record.attemptId}
@@ -440,19 +449,20 @@ export const AdminQuizResults: React.FC<AdminQuizResultsProps> = ({ quizId, onCl
         </div>
       </div>
 
-      {/* Nested Drawer */}
-      <Drawer
+      {/* Nested Modal */}
+      <Modal
         title="Student Detailed Attempt Report"
         width={720}
-        onClose={() => {
+        open={isDrawerOpen}
+        onCancel={() => {
           setIsDrawerOpen(false);
           setSelectedAttemptId(null);
         }}
-        open={isDrawerOpen}
+        footer={null}
         destroyOnClose
       >
         {selectedAttemptId && <DetailedAttemptDrawer attemptId={selectedAttemptId} />}
-      </Drawer>
+      </Modal>
     </div>
   );
 };

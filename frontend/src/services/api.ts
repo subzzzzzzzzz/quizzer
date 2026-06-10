@@ -21,6 +21,7 @@ export interface Quiz {
   updatedAt: string;
   questionCount?: number;
   participantCount?: number;
+  completedAttemptsCount?: number;
   candidateAttempt?: {
     id: string;
     status: string;
