@@ -43,7 +43,7 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // Ant Design custom theme tokens mapping var colors from index.css
+  // Ant Design custom theme tokens mapping var colors from index.scss
   const customTheme = {
     algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
     token: {
