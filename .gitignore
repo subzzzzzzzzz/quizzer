@@ -1,0 +1,58 @@
+# Dependency directories
+node_modules/
+**/node_modules/
+
+# Build and distribution outputs
+dist/
+**/dist/
+build/
+**/build/
+coverage/
+**/coverage/
+
+# Local configuration / environment files
+.env.local
+.env.*.local
+**/.env.local
+**/.env.*.local
+
+# Logs
+*.log
+logs/
+**/logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor directories
+.vscode/
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Figma and extraction artifacts (local specs/temp scripts)
+/figma.pdf
+/prompt.md
+/Icons-instructions.md
+/icons.md
+/pdf_text.txt
+/extract_pdf.js
+/save_screenshots.js
+/extracted_pages/
+/package.json
+/package-lock.json
+
+# Ignore all root-level files and folders
+/*
+
+# Except these folders
+!/frontend/
+!/backend/
+
+# Except these files
+!/.gitignore
+!/README.md
