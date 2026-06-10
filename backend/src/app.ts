@@ -16,11 +16,18 @@ import questionRouter from './modules/questions/question.routes';
 import participantRouter from './modules/participants/participant.routes';
 import attemptRouter from './modules/attempts/attempt.routes';
 import analyticsRouter from './modules/analytics/analytics.routes';
+import { swaggerDocument } from './swagger';
 
 const app = express();
 
-// Set security HTTP headers
-app.use(helmet());
+// Set security HTTP headers (bypass for documentation routes to allow unpkg CDN resources)
+app.use((req, res, next) => {
+  const path = req.path.toLowerCase().replace(/\/$/, '');
+  if (path === '/docs' || path === '/api-docs' || path === '/api/v1/swagger.json') {
+    return next();
+  }
+  helmet()(req, res, next);
+});
 
 // Enable CORS with credentials support for frontend
 const allowedOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
@@ -73,6 +80,59 @@ app.use(`${apiPrefix}/questions`, questionRouter);
 app.use(`${apiPrefix}/participants`, participantRouter);
 app.use(`${apiPrefix}/attempts`, attemptRouter);
 app.use(`${apiPrefix}/analytics`, analyticsRouter);
+
+// Swagger JSON endpoint
+app.get(`${apiPrefix}/swagger.json`, (_req, res) => {
+  res.json(swaggerDocument);
+});
+
+// Swagger UI Docs HTML page
+const docsHtml = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>QuizArena API Docs</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+  <link rel="icon" type="image/png" href="https://unpkg.com/swagger-ui-dist@5/favicon-32x32.png" />
+  <style>
+    html { box-sizing: border-box; }
+    *, *:before, *:after { box-sizing: inherit; }
+    body { margin:0; background: #fafafa; }
+  </style>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
+  <script>
+    window.onload = function() {
+      window.ui = SwaggerUIBundle({
+        url: "${apiPrefix}/swagger.json",
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset
+        ],
+        plugins: [
+          SwaggerUIBundle.plugins.DownloadUrl
+        ],
+        layout: "BaseLayout"
+      });
+    };
+  </script>
+</body>
+</html>
+`;
+
+app.get('/api-docs', (_req, res) => {
+  res.send(docsHtml);
+});
+
+app.get('/docs', (_req, res) => {
+  res.send(docsHtml);
+});
 
 // Base route
 app.get('/', (_req, res) => {
