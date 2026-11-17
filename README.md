@@ -1,6 +1,6 @@
-# QuizArena - Secure Assessment Platform
+# Quizzer - Secure Assessment Platform
 
-QuizArena is a comprehensive, role-based, and proctored assessment application designed for hosting and taking secure online tests. It supports role-based dashboards (Admin, Instructor, and Candidate) and includes real-time proctoring features (tab visibility detection, time limits, and session logging).
+Quizzer is a comprehensive, role-based, and proctored assessment application designed for hosting and taking secure online tests. It supports role-based dashboards (Admin, Instructor, and Candidate) and includes real-time proctoring features (tab visibility detection, time limits, and session logging).
 
 ---
 
@@ -47,7 +47,7 @@ quiz-arena/
 Create a `.env` file in the [backend/](backend/) directory:
 ```env
 PORT=3000
-MONGODB_URI=mongodb://localhost:27017/quizarena
+MONGODB_URI=mongodb://localhost:27017/Quizzer
 JWT_SECRET=your_jwt_secret_key_change_me_in_production
 COOKIE_SECRET=your_cookie_secure_salt_change_me
 CORS_ORIGIN=http://localhost:5173
@@ -79,10 +79,10 @@ npm run seed
 ```
 
 Default credentials created by the seed script:
-* **Admin**: `admin@quizarena.com` / `Password123`
-* **Instructor**: `priya@quizarena.com` / `Password123`
-* **Candidate 1**: `sara@quizarena.com` / `Password123`
-* **Candidate 2**: `rohan@quizarena.com` / `Password123`
+* **Admin**: `admin@Quizzer.com` / `Password123`
+* **Instructor**: `priya@Quizzer.com` / `Password123`
+* **Candidate 1**: `sara@Quizzer.com` / `Password123`
+* **Candidate 2**: `rohan@Quizzer.com` / `Password123`
 
 ### Step 3: Run Development Servers
 Run the backend and frontend dev servers concurrently:
@@ -112,7 +112,7 @@ When the backend server is running locally on port `3000`, you can access the do
 
 ### Testing Authenticated Endpoints in Swagger UI
 1. Go to the `POST /auth/login` endpoint in the docs.
-2. Click **Try it out**, enter the seed credentials (e.g. `instructor@quizarena.com` / `Password123`), and click **Execute**.
+2. Click **Try it out**, enter the seed credentials (e.g. `instructor@Quizzer.com` / `Password123`), and click **Execute**.
 3. Upon successful validation, your browser automatically saves the secure `token` cookie.
 4. All subsequent API queries executed directly through the Swagger UI (e.g. creating quizzes or fetching candidates) will automatically be authenticated!
 
