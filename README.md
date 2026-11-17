@@ -33,7 +33,7 @@ Quizzer is a comprehensive, role-based, and proctored assessment application des
 ## 📂 Project Structure
 
 ```bash
-quiz-arena/
+quizzer/
 ├── backend/          # Node/Express API Server (TypeScript, MongoDB, Jest)
 ├── frontend/         # React SPA (Vite, TypeScript, Redux, Ant Design, Vitest)
 └── README.md         # Documentation & Development Guide
